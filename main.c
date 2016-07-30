@@ -195,7 +195,6 @@ void MountDisk(char direc[150], char Name[16]){
     int Mnum;
     int conL;
     int conN;
-
     //lee la cadena y concatena el nobre del disco ej:: DISK.dsk
     strcpy(nomb_disk, "");
     int i;
@@ -299,14 +298,12 @@ void MountDisk(char direc[150], char Name[16]){
 void ViewMount(){
     struct LtsMountDisk *aux;
     aux = primero;
-    while(aux != NULL){
-
-            struct LtsMountDisk *aux2;
-            aux2 = arriba;
-            while(aux2 != NULL){
-
-                aux = aux->Abajo;
-            }
+    struct LtsMountDisk *aux2;
+    aux2 = aux;
+    while (aux != NULL) {
+        while (aux2 != NULL) {
+            aux2 = aux2->Abajo;
+        }
         aux = aux->Siguiente;
     }
 }
@@ -682,8 +679,6 @@ void Comando(char Cadena[300]){
     bool rmdisk = false;
     bool fdisk = false;
     bool mount = false;
-    bool comen = false;
-    bool execA = false;
     int ElimDisk = 2;
     //size
     bool Size = false;
@@ -1010,21 +1005,6 @@ void Comando(char Cadena[300]){
             fflush(stdin);
             i = -1;
             strcpy(comando, "");
-        }else if(strcmp(comando, "#")==0){
-            int j;
-            for(j = i; j < strlen(Cadena); j++){
-                aux = Cadena[j];
-                strcat(comando, &aux);
-                if(Cadena[j] == '\0' || Cadena[j] == 0){
-                    //fin de linea
-                    printf("%s", comando);
-                    strcpy(comando, "");
-                    break;
-                }
-                i++;
-            }
-            i--;
-            printf(" ");
         }else{
             strcat(comando, &aux);
             //printf("%c", aux);
@@ -1049,8 +1029,10 @@ void Comando(char Cadena[300]){
     }else if(fdisk == true){
         if(Size == true && PthDirB == true && NameDiskB && FitB == true && TypeDiskB == true){
             FDisk(TamDisk, PthDir, NameDisk, Unit, TypeDisk, Fit);
+        }else if(DeltB == true && NameDiskB == true && PthDirB == true){
+
         }else{
-            printf("Error al Intentar crear Particion, Verifique sus Datos");
+            printf("Error al Intentar Hacer Cambio de Particion, Verifique sus Datos");
         }
     }else if(mount == true){
 
@@ -1541,6 +1523,7 @@ int main(int argc, char *argv[])
     while(strcmp(Cadena, "exit") < 0 || strcmp(Cadena, "exit") > 0 ){
         gets(Cadena);
         fflush(stdin);
+        printf("%s\n", Cadena);
         Comando(Cadena);
     }
 
