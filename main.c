@@ -332,6 +332,8 @@ void NewDisk(char name[100], int tam, int unidad, char direc[150]){//crea el dis
     printf("%s\n", Dir);
     FILE *f = fopen (Dir, "w+b");
 
+    //escribimos el archivo binario
+    //strcpy(buffer, "0");
     if(unidad == 1){// 0 == Mk 1==kb
         for(ifor=0;ifor < tam;ifor++)
             fwrite (buffer, sizeof(buffer), 1024, f);
@@ -393,17 +395,11 @@ void RmDisk(char direc[100]){
 }
 //crea particiones
 void FDisk(int Size, char Direc[100], char Name[16], int Unit, int Type, int Fit){
-
-
-    //fdisk -Size::300 -path::"/home/gremory/Escritorio/casas/Disco1.dsk" -name::"Particion1"
-    //fdisk -Size::1024 -path::"/home/gremory/Escritorio/casas/Disco1.dsk" -name::"Particion2"
-    //fdisk -Size::1024 -path::"/home/gremory/Escritorio/casas/Disco1.dsk" -name::"Particion3"
-    //fdisk -Size::1024 -path::"/home/gremory/Escritorio/casas/Disco1.dsk" -name::"Particion4"
-    //fdisk -Size::300 -path::"/home/gremory/Escritorio/casas/Disco1.dsk" -name::"Particion01"
-
     struct EstDisk EDisk;
     struct MasterBoot Mbr;
     struct Partition Part;
+
+    struct ExtendedBoot Ebr = {};
 
     //creamos archivo
     FILE *f = fopen (Direc, "rb+");//Buscamo el Archivo y lo abrimos
@@ -442,9 +438,11 @@ void FDisk(int Size, char Direc[100], char Name[16], int Unit, int Type, int Fit
 
     //asigna el tamno del disco con la que se asigna
     if(Unit == 0){
-        Size = Size*1024*1024;//tamano convertido en bytes
+        Size = Size*1024*1024;//entrada en mega salida en tamano en bytes
     }else if(Unit ==1){
-        Size = Size*1024;//tamano convertido en bytes
+        Size = Size*1024;//entrada en kilobytes salida en tamano en bytes
+    }else if(Unit == 2){
+        Size = Size;
     }
 
     //tipo de particion de la que se crea
@@ -453,6 +451,7 @@ void FDisk(int Size, char Direc[100], char Name[16], int Unit, int Type, int Fit
         strcpy(tipo, "P");
     }else if(Type == 1){
         strcpy(tipo, "E");
+        //Ebr.Part_Next = -1;
     }else if(Type == 2){
         strcpy(tipo, "L");
         printf("No se puede Crear Particion Logica Como Principal");
@@ -493,6 +492,8 @@ void FDisk(int Size, char Direc[100], char Name[16], int Unit, int Type, int Fit
     if((strcmp(Mbr.Mbr_Partition_1.Part_Name, Name) ==0 || strcmp(Mbr.Mbr_Partition_2.Part_Name, Name) == 0 || strcmp(Mbr.Mbr_Partition_3.Part_Name, Name) == 0 || strcmp(Mbr.Mbr_Partition_4.Part_Name, Name) == 0)){
         printf("Error - No se Pudo Crear Particion, Nombre ya exite en otra particion\n");
         printf("Verifique sus Datos\n");
+        fclose(f);
+        return;
     }
 
     //tomo los tamano de disco
@@ -517,12 +518,12 @@ void FDisk(int Size, char Direc[100], char Name[16], int Unit, int Type, int Fit
     ndsk2_size = ndisk_size - part1_size - part2_size;
     ndsk3_size = ndisk_size - part1_size - part2_size - part3_size;
 
-
     //temporisador de 4 milisengundos para poder capturar el espacion de la particion
     printf("T ::%d\n", ndisk_size);
     printf("T ::%d\n", ndsk1_size);
     printf("T ::%d\n", ndsk2_size);
     printf("T ::%d\n", ndsk3_size);
+
 
     if(Mbr.Mbr_Partition_1.Part_Size == 0 && Mbr.Mbr_Partition_2.Part_Size == 0 && Mbr.Mbr_Partition_3.Part_Size == 0 && Mbr.Mbr_Partition_4.Part_Size == 0){
         rewind(f);
@@ -533,6 +534,17 @@ void FDisk(int Size, char Direc[100], char Name[16], int Unit, int Type, int Fit
             //tomamos la posicion donde se almacena o cambiamos la informacion
             fseek(f, sizeof(EDisk),SEEK_SET); //pueod usarlo y modifica info
             fwrite(&Mbr,sizeof(Mbr),1,f);
+
+            fseek(f, Part.Part_Start,SEEK_SET);
+            fwrite(&Mbr.Mbr_Partition_1,sizeof(Mbr.Mbr_Partition_1),1,f);
+
+            if(Type == 1){
+                Ebr.Part_Next = -1;
+                Ebr.Part_Size = 0;
+
+                fseek(f, (Part.Part_Start + sizeof(Mbr.Mbr_Partition_1)),SEEK_SET);
+                fwrite(&Ebr,sizeof(Ebr),1,f);
+            }
             printf("Se Creo Particion Exitosamente\n\n");
         }else{
             printf("Error - Tamano de la particion es demsiado grande\n");
@@ -549,6 +561,14 @@ void FDisk(int Size, char Direc[100], char Name[16], int Unit, int Type, int Fit
             fseek(f, Part.Part_Start,SEEK_SET);
             fwrite(&Mbr.Mbr_Partition_2,sizeof(Mbr.Mbr_Partition_2),1,f);
 
+            if(Type == 1){
+                Ebr.Part_Next = -1;
+                Ebr.Part_Size = 0;
+
+                fseek(f, (Part.Part_Start + sizeof(Mbr.Mbr_Partition_2)),SEEK_SET);
+                fwrite(&Ebr,sizeof(Ebr),1,f);
+            }
+
             printf("Se Creo Particion Exitosamente\n\n");
         }else{
             printf("Error - Tamano de la particion es demsiado grande\n");
@@ -564,6 +584,14 @@ void FDisk(int Size, char Direc[100], char Name[16], int Unit, int Type, int Fit
 
             fseek(f, Part.Part_Start,SEEK_SET);
             fwrite(&Part,sizeof(Part),1,f);
+
+            if(Type == 1){
+                Ebr.Part_Next = -1;
+                Ebr.Part_Size = 0;
+
+                fseek(f, (Part.Part_Start + sizeof(Mbr.Mbr_Partition_3)),SEEK_SET);
+                fwrite(&Ebr,sizeof(Ebr),1,f);
+            }
             printf("Se Creo Particion Exitosamente\n\n");
         }else{
             printf("Error - Tamano de la particion es demsiado grande\n");
@@ -580,8 +608,15 @@ void FDisk(int Size, char Direc[100], char Name[16], int Unit, int Type, int Fit
 
             fseek(f, Part.Part_Start,SEEK_SET);
             fwrite(&Part,sizeof(Part),1,f);
-            printf("Se Creo Particion Exitosamente\n\n");
 
+            if(Type == 1){
+                Ebr.Part_Next = -1;
+                Ebr.Part_Size = 0;
+
+                fseek(f, (Part.Part_Start + sizeof(Mbr.Mbr_Partition_4)),SEEK_SET);
+                fwrite(&Ebr,sizeof(Ebr),1,f);
+            }
+            printf("Se Creo Particion Exitosamente\n\n");
         }else{
             printf("Error - Tamano de la particion es demsiado grande\n");
         }
@@ -612,6 +647,15 @@ void FDisk(int Size, char Direc[100], char Name[16], int Unit, int Type, int Fit
 
                 fseek(f, Part.Part_Start,SEEK_SET);
                 fwrite(&Part,sizeof(Part),1,f);
+
+                if(Type == 1){
+                    Ebr.Part_Next = -1;
+                    Ebr.Part_Size = 0;
+
+                    fseek(f, (Part.Part_Start + sizeof(Part)),SEEK_SET);
+                    fwrite(&Ebr,sizeof(Ebr),1,f);
+                }
+
                 printf("Se Creo Particion Exitosamente\n\n");
             }else{
                 printf("Error - Tamano de la particion es demsiado grande\n");
@@ -635,6 +679,14 @@ void FDisk(int Size, char Direc[100], char Name[16], int Unit, int Type, int Fit
 
                 fseek(f, Part.Part_Start,SEEK_SET);
                 fwrite(&Part,sizeof(Part),1,f);
+
+                if(Type == 1){
+                    Ebr.Part_Next = -1;
+                    Ebr.Part_Size = 0;
+
+                    fseek(f, (Part.Part_Start + sizeof(Part)),SEEK_SET);
+                    fwrite(&Ebr,sizeof(Ebr),1,f);
+                }
                 printf("Se Creo Particion Exitosamente\n\n");
             }else{
                 printf("Error - Tamano de la particion es demsiado grande\n");
@@ -655,6 +707,14 @@ void FDisk(int Size, char Direc[100], char Name[16], int Unit, int Type, int Fit
 
                 fseek(f, Part.Part_Start,SEEK_SET);
                 fwrite(&Part,sizeof(Part),1,f);
+
+                if(Type == 1){
+                    Ebr.Part_Next = -1;
+                    Ebr.Part_Size = 0;
+
+                    fseek(f, (Part.Part_Start + sizeof(Part)),SEEK_SET);
+                    fwrite(&Ebr,sizeof(Ebr),1,f);
+                }
                 printf("Se Creo Particion Exitosamente\n\n");
             }else{
                 printf("Error - Tamano de la particion es demsiado grande\n");
@@ -666,6 +726,158 @@ void FDisk(int Size, char Direc[100], char Name[16], int Unit, int Type, int Fit
     fclose(f);
 
 }
+
+void FDiskLogic(int Size, char Direc[100], char Name[16], int Unit, int Type, int Fit){
+    struct EstDisk EDisk;
+    struct MasterBoot Mbr;
+    struct ExtendedBoot Ebr;
+
+    struct Partition Part;
+
+    //creamos archivo
+    FILE *f = fopen (Direc, "rb+");//Buscamo el Archivo y lo abrimos
+    fseek(f,Direc,SEEK_SET);//tomamo los punteros del datos del archivo
+    //tomamos la informacion de la memorio
+    fread(&EDisk,sizeof(EDisk),1,f);
+    fread(&Mbr, sizeof(Mbr), 1,f);
+
+    if(strcmp(Mbr.Mbr_Partition_1.Part_Type, "E") == 0){
+        Part = Mbr.Mbr_Partition_1;
+    }else if(strcmp(Mbr.Mbr_Partition_2.Part_Type, "E") == 0){
+        Part = Mbr.Mbr_Partition_2;
+    }else if(strcmp(Mbr.Mbr_Partition_3.Part_Type, "E") == 0){
+        Part = Mbr.Mbr_Partition_3;
+    }else if(strcmp(Mbr.Mbr_Partition_4.Part_Type, "E") == 0){
+        Part = Mbr.Mbr_Partition_4;
+    }else{
+        printf("Error - El Disco No contiene Particion Extendida\n\n");
+        return;
+    }
+
+    //asigna el tamno del disco con la que se asigna
+    if(Unit == 0){
+        Size = Size*1024*1024;//entrada en mega salida en tamano en bytes
+    }else if(Unit ==1){
+        Size = Size*1024;//entrada en kilobytes salida en tamano en bytes
+    }else if(Unit == 2){
+        Size = Size;
+    }
+
+    //tipo de colocacion
+    char fitT[4];
+    if(Fit == 0){
+        strcpy(fitT, "BF");
+    }else if(Fit == 1){
+        strcpy(fitT, "FF");
+    }else if(Fit == 2){
+        strcpy(fitT, "WF");
+    }
+
+    int partL_ini;
+    int partL_fin;
+
+    int partL_iniS;
+
+    int partL_lib;
+    int partE_size = 0;
+
+    partE_size = Part.Part_Size - sizeof(Part);
+
+    //tomamo el puntero de la particion extendida donde se encuentra el primer EBR
+    fseek(f, (Part.Part_Start + sizeof(Part)),SEEK_SET);
+    fread(&Ebr, sizeof(Ebr), 1,f);
+
+    if(Ebr.Part_Next == -1 && Ebr.Part_Size == 0){
+
+        if(partE_size > Size){
+            sprintf(Ebr.Part_Status, "%s", "S");
+            sprintf(Ebr.Part_Fit, "%s", fitT);
+            Ebr.Part_Start = Part.Part_Start + sizeof(Part);//la particion iniacia en donde inicia EBR
+            Ebr.Part_Size = Size;
+            Ebr.Part_Next = -1;
+            sprintf(Ebr.Part_Name, "%s", Name);
+
+            fseek(f, (Part.Part_Start + sizeof(Part)),SEEK_SET);
+            read(&Ebr, sizeof(Ebr), 1,f);
+        }else{
+            printf("Error - La particion que se desea crear Demasiado Grande\n\n");
+        }
+    }else {
+        bool guardo = false;
+        while(guardo == false){
+            partL_ini = Ebr.Part_Start;
+            partL_fin = partL_ini + Ebr.Part_Size;
+            if(partE_size > Size){
+                if(Ebr.Part_Next == -1){
+                    partE_size = partE_size - Ebr.Part_Size;
+                    if(partE_size > Size){
+                        //sobre escribir el ebr anterio ya existente
+                        Ebr.Part_Next = partL_fin;
+                        fseek(f, Ebr.Part_Start ,SEEK_SET);
+                        read(&Ebr, sizeof(Ebr), 1,f);
+        
+                        //escribiendo el nuevo ebr
+                        sprintf(Ebr.Part_Status, "%s", "S");
+                        sprintf(Ebr.Part_Fit, "%s", fitT);
+                        Ebr.Part_Start = partL_fin;//la particion iniacia en donde inicia EBR
+                        Ebr.Part_Size = Size;
+                        Ebr.Part_Next = -1;
+                        sprintf(Ebr.Part_Name, "%s", Name);
+        
+                        fseek(f, Ebr.Part_Start,SEEK_SET);
+                        read(&Ebr, sizeof(Ebr), 1,f);
+                        
+                        guardo = true;
+                        break;
+                    }else{
+                        printf("Error - La particion que se desea crear Demasiado Grande\n\n");
+                    }
+                }else if(Ebr.Part_Next != -1){
+                    partL_iniS = Ebr.Part_Next;
+        
+                    if(partL_fin == partL_iniS){
+                        partE_size = partE_size - Ebr.Part_Size;
+                        fseek(f, partL_iniS,SEEK_SET);//el puntero se situe en la parte donde inicia el siguiente ebr
+                        read(&Ebr, sizeof(Ebr), 1,f);
+                    }else{
+                        partL_lib = partL_iniS - partL_fin;
+                        if(partL_lib > Size){
+                            //sobre escribir el ebr anterio ya existente
+                            Ebr.Part_Next = partL_fin;
+        
+                            fseek(f, Ebr.Part_Start ,SEEK_SET);
+                            read(&Ebr, sizeof(Ebr), 1,f);
+        
+                            //escribiendo el nuevo ebr
+                            sprintf(Ebr.Part_Status, "%s", "S");
+                            sprintf(Ebr.Part_Fit, "%s", fitT);
+                            Ebr.Part_Start = partL_fin;//la particion iniacia en donde inicia EBR
+                            Ebr.Part_Size = Size;
+                            Ebr.Part_Next = partL_iniS;
+                            sprintf(Ebr.Part_Name, "%s", Name);
+        
+                            fseek(f, Ebr.Part_Start,SEEK_SET);
+                            read(&Ebr, sizeof(Ebr), 1,f);
+                            
+                            guardo = true;
+                            break;
+                        }else{
+                            partE_size = partE_size - partL_lib;
+                            fseek(f, partL_iniS,SEEK_SET);//el puntero se situe en la parte donde inicia el siguiente ebr
+                            read(&Ebr, sizeof(Ebr), 1,f);
+                        }
+                    }
+                }
+            }else{
+                guardo = true;
+                printf("Error - La particion que se desea crear Demasiado Grande y no se encontro Posicion disponible\n\n");
+                break;
+            }
+        }
+    }
+    fclose(f);
+}
+
 
 //*********************************************************************************************************//
 //**************************************** Analizador de Entrada ******************************************//
@@ -1028,11 +1240,15 @@ void Comando(char Cadena[300]){
         }
     }else if(fdisk == true){
         if(Size == true && PthDirB == true && NameDiskB && FitB == true && TypeDiskB == true){
-            FDisk(TamDisk, PthDir, NameDisk, Unit, TypeDisk, Fit);
+            if(TypeDisk == 2){
+                FDiskLogic(TamDisk, PthDir, NameDisk, Unit, TypeDisk, Fit);
+            }else{
+                FDisk(TamDisk, PthDir, NameDisk, Unit, TypeDisk, Fit);
+            }
         }else if(DeltB == true && NameDiskB == true && PthDirB == true){
 
         }else{
-            printf("Error al Intentar Hacer Cambio de Particion, Verifique sus Datos");
+            printf("Error al Intentar Hacer Cambio de Particion, Verifique sus Datos\n");
         }
     }else if(mount == true){
 
