@@ -12,16 +12,16 @@
 //******************************** Estructuras del Archivo
 //+++++++++++++ struct del Disco *********
 struct EstDisk{ //struct del disco
-    char nombre[100];
+    char nombre[16];//100
     int tamano;
     char particiones[9];
     char pnt[9]; //direccion del mbr -- punteros
 };
 
 struct Partition{
-    char Part_Status[4];//indica si esta activa  o no
-    char Part_Type[4];//indica tipo de particion Primario o Extendida p o E
-    char Part_Fit[4];//Tipo de ajuste Valores BF (Best) FF(First WF(Worst)
+    char Part_Status[2];//indica si esta activa  o no //4
+    char Part_Type[2];//indica tipo de particion Primario o Extendida p o E //4
+    char Part_Fit[2];//Tipo de ajuste Valores BF (Best) FF(First WF(Worst) // 4
     int Part_Start;//Indica en que Byte Inicia el Disco
     int Part_Size;//Contiene el Tamano total de la particion
     char Part_Name[16];//Nombre de la particion
@@ -40,8 +40,8 @@ struct MasterBoot{//Mbr
 };
 
 struct ExtendedBoot{//Ebr
-    char Part_Status[4];//indica si esta activa  o no
-    char Part_Fit[4];//Tipo de ajuste Valores BF (Best) FF(First WF(Worst)
+    char Part_Status[2];//indica si esta activa  o no // 4
+    char Part_Fit[2];//Tipo de ajuste Valores BF (Best) FF(First WF(Worst) //4
     int Part_Start;//Indica en que Byte Inicia el Disco
     int Part_Size;//Contiene el Tamano total de la particion
     int Part_Next;//Byte en el que indica el proximo EBR -1 si no hay siguiente
@@ -527,6 +527,26 @@ void ViewMount(){
         printf("=================================\n");
         aux = aux->Siguiente;
     }
+}
+
+void MountVisor(){
+    struct LtsMountDisk *aux;
+    aux = primero;
+    struct LtsMountDisk *aux2;
+
+    printf("======================================================================================\n");
+    printf("*********************************** Particiones Montadas *****************************\n\n");
+
+    while (aux != NULL) {
+        aux2 = aux;
+        while (aux2 != NULL) {
+            printf("-id::vd%c%d -path::\"%s\" -name::\"%s\"\n", (char)(aux2->Letra), aux2->Numero, aux2->Directorio, aux2->Particion);
+            aux2 = aux2->Abajo;
+        }
+        aux = aux->Siguiente;
+    }
+    printf("\n=====================================================================================\n");
+    printf("**************************************************************************************\n\n");
 }
 
 void NewDisk(char name[100], int tam, int unidad, char direc[150]){//crea el disco //crear_disco
@@ -1229,6 +1249,10 @@ void FDiskLogic(int Size, char Direc[100], char Name[16], int Unit, int Type, in
 
     //creamos archivo
     FILE *f = fopen (Direc, "rb+");//Buscamo el Archivo y lo abrimos
+    if(f == NULL){
+        printf("Error - Disco No existe... ingrese una Path Valida\n\n");
+        return;
+    }
     fseek(f,Direc,SEEK_SET);//tomamo los punteros del datos del archivo
     //tomamos la informacion de la memorio
     fread(&EDisk,sizeof(EDisk),1,f);
@@ -1504,6 +1528,10 @@ void DeleteFdisk(char Direc[100], char Name[16], int formato){
 
     //creamos archivo
     FILE *f = fopen (Direc, "rb+");//Buscamo el Archivo y lo abrimos
+    if(f == NULL){
+        printf("Error - Disco No existe... ingrese una Path Valida\n\n");
+        return;
+    }
     fseek(f,Direc,SEEK_SET);//tomamo los punteros del datos del archivo
     //tomamos la informacion de la memorio
     fread(&EDisk,sizeof(EDisk),1,f);
@@ -1825,6 +1853,8 @@ void Comando(char Cadena[300]){
     bool mount = false;
     bool umount = false;
     bool idn = false;
+    bool rep = false;
+    char iden[5];
     int ElimDisk = 2;
     //size
     bool Size = false;
@@ -1836,7 +1866,7 @@ void Comando(char Cadena[300]){
     bool PthDirB = false;
     char PthDir[100];
     //nombre
-    char NameDisk[50];
+    char NameDisk[20];
     bool NameDiskB = false;
     //type
     int TypeDisk = 0;
@@ -1899,6 +1929,9 @@ void Comando(char Cadena[300]){
             strcpy(comando, "");
         }else if(strcmp(comando, "umount") == 0){
             umount = true;
+            strcpy(comando, "");
+        }else if(strcmp(comando, "rep") == 0){
+            rep = true;
             strcpy(comando, "");
         }else if(strcmp(comando, "exec") == 0){
             int j;
@@ -2120,32 +2153,53 @@ void Comando(char Cadena[300]){
             int j;
             strcpy(comando, "");
             //strcat(comando, &aux);
-            for(j = i; j < strlen(Cadena); j++){
-                if(Cadena[i] == '+' || Cadena[i] == '-' || Cadena[i] == ' ' || Cadena[i] == '"'){
-                    aux = Cadena[j];
-                }else if(Cadena[i] == '.'){
-                    ext = 1;
-                    aux = Cadena[i];
-                }else{
-                    aux = (Cadena[j]);
-                }
-                if(Cadena[j] == '"'){
-                    if(comi != 0){
+            if(idn == true){
+                for(j = i; j <= strlen(Cadena); j++){
+                    if(Cadena[i] == '+' || Cadena[i] == '-' || Cadena[i] == '"'){
+                        aux = Cadena[j];
+                    }else if(Cadena[i] == '.'){
+                        ext = 1;
+                        aux = Cadena[j];
+                    }else{
+                        aux = (Cadena[j]);
+                    }
+                    if(Cadena[j] == ' ' || (j) == strlen(Cadena)){
                         strcpy(NameDisk, comando);
                         break;
                     }else{
-                        comi = 1;
+                        strcat(comando, &aux);
                     }
-                }else{
-                    if(ext == 1){
-                        strcat(extt, &aux);
-                    }
-                    if(strcmp(extt, ".dsk") == 0){
-                        ext = 2;
-                    }
-                    strcat(comando, &aux);
+                    i++;
                 }
-                i++;
+            }else{
+                for(j = i; j < strlen(Cadena); j++){
+                    if(Cadena[i] == '+' || Cadena[i] == '-' || Cadena[i] == ' ' || Cadena[i] == '"'){
+                        aux = Cadena[j];
+                    }else if(Cadena[i] == '.'){
+                        ext = 1;
+                        aux = Cadena[i];
+                    }else{
+                        aux = (Cadena[j]);
+                    }
+                    if(Cadena[j] == '"'){
+                        if(comi != 0){
+                            strcpy(NameDisk, comando);
+                            break;
+                        }else{
+                            comi = 1;
+                        }
+                    }else{
+                        if(ext == 1){
+                            strcat(extt, &aux);
+                        }
+                        if(strcmp(extt, ".dsk") == 0){
+                            ext = 2;
+                        }
+                        strcat(comando, &aux);
+                    }
+                    i++;
+                }
+
             }
             if((ext == 1 || ext == 0) && mkdisk == true){
                 printf("!!Error!! No Tiene Extension\n");
@@ -2187,6 +2241,39 @@ void Comando(char Cadena[300]){
                     strcpy(comando, "");
                 }else{
                     strcat(comando, &aux);
+                }
+                if(ss == 1){
+                    break;
+                }
+                i++;
+            }
+        }else if(strcmp(comando, "-id::") == 0 && rep == true){
+            idn = true;
+            int l;
+            int ll;
+            int ss = 0;
+            strcpy(comando, "");
+            strcpy(iden, "");
+            for(l = i; l < strlen(Cadena); l++){
+                aux = Cadena[l];
+                strcpy(comando, "");
+                for(ll = l; ll < strlen(Cadena); ll++){
+                    aux = Cadena[ll];
+                    if(Cadena[ll] == ' ' || Cadena[ll] == '\n' || (ll+1) == strlen(Cadena)){
+                        //mandar a desmontar
+                        if((ll+1) == strlen(Cadena)){
+                            strcat(comando, &aux);
+                        }
+
+                        ss = 1;
+                        strcat(iden, comando);
+                        strcpy(comando, "");
+                        break;
+                    }else{
+                        strcat(comando, &aux);
+                    }
+                    l++;
+                    i++;
                 }
                 if(ss == 1){
                     break;
@@ -2236,7 +2323,17 @@ void Comando(char Cadena[300]){
             MountDisk(PthDir, NameDisk);
             ViewMount();
         }else{
-            printf("Error al  Intentar Montar particion verifique su Comando\n");
+            MountVisor();
+        }
+    }else if(rep == true){
+        if(PthDirB == true && idn == true && NameDiskB == true){
+            if(strcmp(NameDisk, "mbr") == 0){
+                printf(" SI esta corecto\n");
+            }else if(strcmp(NameDisk, "disk") == 0){
+
+            }else if(strcmp(NameDisk, "tree") == 0){
+
+            }
         }
     }
 }
@@ -2811,9 +2908,53 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-void ComandosIN(){
+/*
+#include <stdio.h>
 
+FILE* archivo;
+
+int main()
+{
+    archivo = fopen("archivo.txt", "a+");
+    fprintf(archivo, "%s", "Esta es la ultima linea\n");
+    fclose(archivo);
 }
+
+Y recuerdate los siguientes permisos:
+
+Código:
+r      lee el archivo.
+w      reemplaza el contenido del archivo por otro texto.
+rw     lee y reemplaza el texto del archivo por otro.
+w+     agrega un texto al final del archivo.
+a+     es lo mismo que w+.
+
+
+
+
+
+
+
+#include <stdio.h>
+
+int main ( int argc, char **argv )
+{
+    FILE *fp;
+
+    char buffer[100] = "Esto es un texto dentro del fichero.";
+
+    fp = fopen ( "fichero.txt", "r+" );
+
+    fprintf(fp, buffer);
+    fprintf(fp, "%s", "\nEsto es otro texto dentro del fichero.");
+
+    fclose ( fp );
+
+    return 0;
+}
+
+
+*/
 
 /*
  * char *aux;
