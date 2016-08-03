@@ -71,7 +71,7 @@ struct LtsMountDisk{
     char Directorio[150];
     struct LtsMountDisk *Abajo;
     struct LtsMountDisk *Siguiente;
-    //struct LtsMountDisk *Arriba;
+    struct LtsMountDisk *Arriba;
 };
 
 struct LtsMountDisk *primero, *ultimo, *arriba, *abajo;
@@ -335,9 +335,10 @@ void MountDisk(char direc[150], char Name[16]){
         strcpy(NMount->Particion, Name);
         strcpy(NMount->Disco, nomb_disk);
         strcpy(NMount->Directorio, direc);
-        primero = NMount;
-        //NMount->Arriba = NMount;
+        NMount->Arriba = NULL;
         NMount->Abajo = NULL;
+
+        primero = NMount;
         //arriba = NMount;
         ultimo = NMount;
         //abajo = NMount;
@@ -384,6 +385,7 @@ void MountDisk(char direc[150], char Name[16]){
                 NMount->Numero = conN;
                 NMount->Abajo = NULL;
                 aux3->Abajo = NMount;
+                NMount->Arriba = aux;
 
                 printf("Se Monto la particion Exitosamente - De un Disco Existente\n");
                 return;
@@ -407,14 +409,108 @@ void MountDisk(char direc[150], char Name[16]){
             NMount->Letra = conL;
             NMount->Numero = 1;
             NMount->Abajo = NULL;
+            NMount->Siguiente = NULL;
+
+            NMount->Arriba = NULL;
 
             ultimo->Siguiente = NMount;
-            NMount->Siguiente = ultimo;
+            //NMount->Siguiente = ultimo;
             ultimo = NMount;
             printf("Se Monto la particion Exitosamente - De un Nuevo Disco\n");
             return;
         }
     }
+}
+
+void UnMountDisk(char unmount[6]){
+    struct LtsMountDisk *MountAux;
+    struct LtsMountDisk *MountAux2;
+    struct LtsMountDisk *auxi;
+    struct LtsMountDisk *auxi2;
+    //int a = 65;
+    //printf("%c\n", (char)a);
+    //char b [4];
+    //strcpy(b, "C");
+    //printf("%d\n", (int)b[0]);
+    bool exist = false;
+    MountAux = primero;
+    if(unmount[0] == 'v' && unmount[1] == 'd'){
+        int letra = (int)unmount[2];
+        char aux[2];
+        strcpy(aux, "");
+        strcat(aux, &unmount[3]);
+        strcat(aux, &unmount[4]);
+
+        int num = atoi(aux);
+        auxi2 = NULL;
+        while(MountAux != NULL){
+            MountAux2 = MountAux;
+            while(MountAux2 != NULL){
+                if(MountAux2->Letra == letra && MountAux2->Numero == num){
+                    if(MountAux2->Arriba == NULL && MountAux2->Abajo == NULL){
+                        if(MountAux2->Siguiente == NULL){
+                            ultimo = auxi2;
+                        }
+                        if(auxi2 == NULL){
+                            primero = MountAux->Siguiente;
+                            MountAux2->Siguiente = NULL;
+                            MountAux2->Abajo = NULL;
+                            exist = true;
+                            free(MountAux2);
+                            break;
+                        }else{
+                            auxi2->Siguiente = MountAux->Siguiente;
+                            MountAux->Siguiente = NULL;
+                            exist = true;
+                            free(MountAux2);
+                            break;
+                        }
+                    }else if(MountAux2->Arriba == NULL && MountAux2->Abajo != NULL){
+                        if(MountAux2->Siguiente == NULL){
+                            ultimo = auxi2;
+                        }
+                        if(auxi2 == NULL){
+                            MountAux2->Abajo->Siguiente = primero->Siguiente;
+                            MountAux2->Abajo->Arriba = NULL;
+                            primero = MountAux2->Abajo;
+                            MountAux2->Abajo = NULL;
+                            exist = true;
+                            free(MountAux2);
+                            break;
+                        }else{
+                            MountAux2->Abajo->Siguiente = MountAux->Siguiente;
+                            MountAux2->Abajo->Arriba = NULL;
+                            auxi2->Siguiente = MountAux2->Abajo;
+                            MountAux->Siguiente = NULL;
+                            MountAux2->Abajo = NULL;
+                            free(MountAux2);
+                            exist = true;
+                            break;
+                        }
+                    }
+                    auxi->Abajo = MountAux2->Abajo;
+                    MountAux2->Abajo = MountAux2->Arriba;
+                    MountAux2->Abajo = NULL;
+                    free(MountAux2);
+                    exist = true;
+                    break;
+                }
+                auxi = MountAux2;
+                MountAux2 = MountAux2->Abajo;
+            }
+            if(exist == true){
+                break;
+                printf("Se desmonto la Particion\n");
+            }
+            auxi2 = MountAux;
+            MountAux = MountAux->Siguiente;
+        }
+    }
+
+    if(exist == false){
+        printf("Error - NO se encontro particion Montada\n");
+    }
+
 }
 
 void ViewMount(){
@@ -423,9 +519,12 @@ void ViewMount(){
     struct LtsMountDisk *aux2;
     aux2 = aux;
     while (aux != NULL) {
+        aux2 = aux;
         while (aux2 != NULL) {
+            printf("Particion %s\n", aux2->Particion);
             aux2 = aux2->Abajo;
         }
+        printf("=================================\n");
         aux = aux->Siguiente;
     }
 }
@@ -1712,7 +1811,6 @@ void DeleteFdisk(char Direc[100], char Name[16], int formato){
 
 }
 
-
 //*********************************************************************************************************//
 //**************************************** Analizador de Entrada ******************************************//
 
@@ -1725,6 +1823,8 @@ void Comando(char Cadena[300]){
     bool rmdisk = false;
     bool fdisk = false;
     bool mount = false;
+    bool umount = false;
+    bool idn = false;
     int ElimDisk = 2;
     //size
     bool Size = false;
@@ -1796,6 +1896,9 @@ void Comando(char Cadena[300]){
             }
         }else if(strcmp(comando, "mount") == 0){
             mount = true;
+            strcpy(comando, "");
+        }else if(strcmp(comando, "umount") == 0){
+            umount = true;
             strcpy(comando, "");
         }else if(strcmp(comando, "exec") == 0){
             int j;
@@ -2051,6 +2154,45 @@ void Comando(char Cadena[300]){
                 NameDiskB = true;
             }
             strcpy(comando, "");
+        }else if(strcmp(comando, "-id") == 0 && umount == true){
+            idn = true;
+            int l;
+            int ll;
+            int ss = 0;
+            strcpy(comando, "");
+            for(l = i; l < strlen(Cadena); l++){
+                aux = Cadena[l];
+                if(strcmp(comando, "::") == 0){
+                    strcpy(comando, "");
+                    for(ll = l; ll < strlen(Cadena); ll++){
+                        aux = Cadena[ll];
+                        if(Cadena[ll] == ' ' || Cadena[ll] == '\n' || (ll+1) == strlen(Cadena)){
+                            //mandar a desmontar
+                            if((ll+1) == strlen(Cadena)){
+                                strcat(comando, &aux);
+                            }
+                            printf("Particion Desmontar... %s\n", comando);
+                            UnMountDisk(comando);
+                            ViewMount();
+                            ss = 1;
+                            strcpy(comando, "");
+                            break;
+                        }else{
+                            strcat(comando, &aux);
+                        }
+                        l++;
+                        i++;
+                    }
+                }else if(Cadena[l] == ' ' || Cadena[l] == '\n' || Cadena[l] == '0' || Cadena[l] == '1' || Cadena[l] == '2' || Cadena[l] == '3' || Cadena[l] == '4' || Cadena[l] == '5' || Cadena[l] == '6' || Cadena[l] == '7' || Cadena[l] == '8' || Cadena[l] == '9'){
+                    strcpy(comando, "");
+                }else{
+                    strcat(comando, &aux);
+                }
+                if(ss == 1){
+                    break;
+                }
+                i++;
+            }
         }else if(strcmp(comando, "\\") == 0 || Cadena[i] == '\\'){
             gets(Cadena);
             fflush(stdin);
@@ -2092,6 +2234,7 @@ void Comando(char Cadena[300]){
     }else if(mount == true){
         if(PthDirB == true && NameDiskB == true){
             MountDisk(PthDir, NameDisk);
+            ViewMount();
         }else{
             printf("Error al  Intentar Montar particion verifique su Comando\n");
         }
@@ -2641,8 +2784,8 @@ int main(int argc, char *argv[])
 {
 
     //PruebaL();
-    Prueba();
-    PruebaL();
+    //Prueba();
+    //PruebaL();
     //return 0;
     char Cadena[300];
     strcpy(Cadena, "");
