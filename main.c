@@ -21,7 +21,7 @@ struct EstDisk{ //struct del disco
 struct Partition{
     char Part_Status[2];//indica si esta activa  o no //4
     char Part_Type[2];//indica tipo de particion Primario o Extendida p o E //4
-    char Part_Fit[2];//Tipo de ajuste Valores BF (Best) FF(First WF(Worst) // 4
+    char Part_Fit[4];//Tipo de ajuste Valores BF (Best) FF(First WF(Worst) // 4
     int Part_Start;//Indica en que Byte Inicia el Disco
     int Part_Size;//Contiene el Tamano total de la particion
     char Part_Name[16];//Nombre de la particion
@@ -41,7 +41,7 @@ struct MasterBoot{//Mbr
 
 struct ExtendedBoot{//Ebr
     char Part_Status[2];//indica si esta activa  o no // 4
-    char Part_Fit[2];//Tipo de ajuste Valores BF (Best) FF(First WF(Worst) //4
+    char Part_Fit[4];//Tipo de ajuste Valores BF (Best) FF(First WF(Worst) //4
     int Part_Start;//Indica en que Byte Inicia el Disco
     int Part_Size;//Contiene el Tamano total de la particion
     int Part_Next;//Byte en el que indica el proximo EBR -1 si no hay siguiente
@@ -510,7 +510,6 @@ void UnMountDisk(char unmount[6]){
     if(exist == false){
         printf("Error - NO se encontro particion Montada\n");
     }
-
 }
 
 void ViewMount(){
@@ -807,7 +806,7 @@ void FDisk(int Size, char Direc[100], char Name[16], int Unit, int Type, int Fit
     }
 
     //tipo de colocacion
-    char fitT[4];
+    char fitT[2];
     if(Fit == 0){
         strcpy(fitT, "BF");
     }else if(Fit == 1){
@@ -1390,7 +1389,7 @@ void FDiskLogic(int Size, char Direc[100], char Name[16], int Unit, int Type, in
     }
 
     //tipo de colocacion
-    char fitT[4];
+    char fitT[2];
     if(Fit == 0){
         strcpy(fitT, "BF");
     }else if(Fit == 1){
@@ -1837,6 +1836,574 @@ void DeleteFdisk(char Direc[100], char Name[16], int formato){
     }
     fclose(f);
 
+}
+
+//*********************************************************************************************************//
+//*********************************************** Reportes ************************************************//
+void RepDisk(char ide[5], char destino[100]){
+    char direc[150];
+    strcpy(direc, "");
+    FILE *rp;
+    rp = fopen("RepDisk.dot","w");
+
+    struct LtsMountDisk *MountAux;
+    struct LtsMountDisk *MountAux2;
+
+    bool exist = false;
+    MountAux = primero;
+    if(ide[0] == 'v' && ide[1] == 'd'){
+        int letra = (int)ide[2];
+        char aux[2];
+        strcpy(aux, "");
+        strcat(aux, &ide[3]);
+        strcat(aux, &ide[4]);
+
+        int num = atoi(aux);
+        while(MountAux != NULL){
+            MountAux2 = MountAux;
+            while(MountAux2 != NULL){
+                if(MountAux2->Letra == letra && MountAux2->Numero == num){
+                    strcat(direc, MountAux2->Directorio);
+                    exist = true;
+                    break;
+                }
+                MountAux2 = MountAux2->Abajo;
+            }
+            if(exist == true){
+                break;
+            }
+            MountAux = MountAux->Siguiente;
+        }
+    }else{
+        printf("Error Identificador no Valido\n\n");
+    }
+    if(exist == false){
+        printf("Error - NO se encontro particion Montada\n");
+    }
+
+    struct EstDisk EDisk;
+    struct MasterBoot Mbr;
+    struct ExtendedBoot Ebr;
+
+    int ebri;
+
+    FILE *f = fopen (direc, "rb+");//Buscamo el Archivo y lo abrimos
+    if(f == NULL){
+        printf("Error - Disco No existe... ingrese una Path Valida\n\n");
+        return;
+    }
+    fseek(f,direc,SEEK_SET);//tomamo los punteros del datos del archivo
+    //tomamos la informacion de la memorio
+    fread(&EDisk,sizeof(EDisk),1,f);
+    fread(&Mbr, sizeof(Mbr), 1,f);
+
+    fprintf(rp, "digraph G{\n");
+    fprintf(rp, "\"Node0\" [\n");
+
+    //label = "{ Nombre  | {      Disco | Libre	 | { Etendida | {a|b|c|d} } | Disco | Disco }}"
+    fprintf(rp, "label = \"{ Disco - %s | {", EDisk.nombre);
+    fprintf(rp, "Mbr ");
+
+    if(Mbr.Mbr_Partition_1.Uso == 11 && Mbr.Mbr_Partition_2.Uso == 11 && Mbr.Mbr_Partition_3.Uso == 11 && Mbr.Mbr_Partition_4.Uso == 11){
+        fprintf(rp, "|                              Libre                           ");
+    }
+
+    if(Mbr.Mbr_Partition_1.Uso == 22){
+        if(Mbr.Mbr_Partition_1.Part_Start == (sizeof(Mbr)+sizeof(EDisk))){
+            if(strcmp(Mbr.Mbr_Partition_1.Part_Type, "E") == 0){
+                fseek(f, (Mbr.Mbr_Partition_1.Part_Start + +sizeof(Mbr.Mbr_Partition_1)),SEEK_SET);
+                fread(&Ebr, sizeof(Ebr), 1,f);
+                fprintf(rp, "| { Extendida");
+                ebri = 0;
+                if(Ebr.Part_Size != 0){
+                    fprintf(rp, "| {Ebr");
+                    fprintf(rp, "| Logica");
+                    while(Ebr.Part_Next != -1){
+                        if(Ebr.Part_Next == (Ebr.Part_Start + Ebr.Part_Size)){
+                            fprintf(rp, "| Ebr");
+                            fprintf(rp, "| Logica");
+                        }else{
+                            fprintf(rp, "|Libre");
+                            fprintf(rp, "| Ebr");
+                            fprintf(rp, "| Logica");
+                        }
+
+                        fseek(f, Ebr.Part_Next,SEEK_SET);
+                        fread(&Ebr, sizeof(Ebr), 1,f);
+                    }
+                }else{
+                    fprintf(rp, "| {Ebr");
+                    fprintf(rp, "|           Libre         ");
+                }
+                fprintf(rp, "}");
+                fprintf(rp, "}");
+            }
+        }else{
+            fprintf(rp, "| Libre");
+            if(strcmp(Mbr.Mbr_Partition_1.Part_Type, "E") == 0){
+                fseek(f, (Mbr.Mbr_Partition_1.Part_Start + +sizeof(Mbr.Mbr_Partition_1)),SEEK_SET);
+                fread(&Ebr, sizeof(Ebr), 1,f);
+                fprintf(rp, "| { Extendida");
+                ebri = 0;
+                if(Ebr.Part_Size != 0){
+                    fprintf(rp, "| {Ebr");
+                    fprintf(rp, "| Logica");
+                    while(Ebr.Part_Next != -1){
+                        if(Ebr.Part_Next == (Ebr.Part_Start + Ebr.Part_Size)){
+                            fprintf(rp, "| Ebr");
+                            fprintf(rp, "| Logica");
+                        }else{
+                            fprintf(rp, "|Libre");
+                            fprintf(rp, "| Ebr");
+                            fprintf(rp, "| Logica");
+                        }
+
+                        fseek(f, Ebr.Part_Next,SEEK_SET);
+                        fread(&Ebr, sizeof(Ebr), 1,f);
+                    }
+                }else{
+                    fprintf(rp, "| {Ebr");
+                    fprintf(rp, "|           Libre         ");
+                }
+                fprintf(rp, "}");
+                fprintf(rp, "}");
+            }else{
+                fprintf(rp, "|   Particion    ");
+            }
+        }
+    }
+    if(Mbr.Mbr_Partition_2.Uso == 22){
+        if(Mbr.Mbr_Partition_2.Part_Start == (Mbr.Mbr_Partition_1.Part_Start + Mbr.Mbr_Partition_1.Part_Size)){
+            if(strcmp(Mbr.Mbr_Partition_2.Part_Type, "E") == 0){
+                fseek(f, (Mbr.Mbr_Partition_2.Part_Start + sizeof(Mbr.Mbr_Partition_2)),SEEK_SET);
+                fread(&Ebr, sizeof(Ebr), 1,f);
+                fprintf(rp, "| { Extendida");
+                ebri = 0;
+                if(Ebr.Part_Size != 0){
+                    fprintf(rp, "| {Ebr");
+                    fprintf(rp, "| Logica");
+                    while(Ebr.Part_Next != -1){
+                        if(Ebr.Part_Next == (Ebr.Part_Start + Ebr.Part_Size)){
+                            fprintf(rp, "| Ebr");
+                            fprintf(rp, "| Logica");
+                        }else{
+                            fprintf(rp, "|Libre");
+                            fprintf(rp, "| Ebr");
+                            fprintf(rp, "| Logica");
+                        }
+
+                        fseek(f, Ebr.Part_Next,SEEK_SET);
+                        fread(&Ebr, sizeof(Ebr), 1,f);
+                    }
+                }else{
+                    fprintf(rp, "| {Ebr");
+                    fprintf(rp, "|           Libre         ");
+                }
+                fprintf(rp, "}");
+                fprintf(rp, "}");
+            }else{
+                fprintf(rp, "| Libre");
+                if(strcmp(Mbr.Mbr_Partition_1.Part_Type, "E") == 0){
+                    fseek(f, (Mbr.Mbr_Partition_1.Part_Start + +sizeof(Mbr.Mbr_Partition_1)),SEEK_SET);
+                    fread(&Ebr, sizeof(Ebr), 1,f);
+                    fprintf(rp, "| { Extendida");
+                    ebri = 0;
+                    if(Ebr.Part_Size != 0){
+                        fprintf(rp, "| {Ebr");
+                        fprintf(rp, "| Logica");
+                        while(Ebr.Part_Next != -1){
+                            if(Ebr.Part_Next == (Ebr.Part_Start + Ebr.Part_Size)){
+                                fprintf(rp, "| Ebr");
+                                fprintf(rp, "| Logica");
+                            }else{
+                                fprintf(rp, "|Libre");
+                                fprintf(rp, "| Ebr");
+                                fprintf(rp, "| Logica");
+                            }
+
+                            fseek(f, Ebr.Part_Next,SEEK_SET);
+                            fread(&Ebr, sizeof(Ebr), 1,f);
+                        }
+                    }else{
+                        fprintf(rp, "| {Ebr");
+                        fprintf(rp, "|           Libre         ");
+                    }
+                    fprintf(rp, "}");
+                    fprintf(rp, "}");
+                }else{
+                    fprintf(rp, "|   Particion    ");
+                }
+            }
+        }else{
+            fprintf(rp, "| Libre");
+            if(strcmp(Mbr.Mbr_Partition_2.Part_Type, "E") == 0){
+                fseek(f, (Mbr.Mbr_Partition_2.Part_Start + +sizeof(Mbr.Mbr_Partition_2)),SEEK_SET);
+                fread(&Ebr, sizeof(Ebr), 1,f);
+                fprintf(rp, "| { Extendida");
+                ebri = 0;
+                if(Ebr.Part_Size != 0){
+                    fprintf(rp, "| {Ebr");
+                    fprintf(rp, "| Logica");
+                    while(Ebr.Part_Next != -1){
+                        if(Ebr.Part_Next == (Ebr.Part_Start + Ebr.Part_Size)){
+                            fprintf(rp, "| Ebr");
+                            fprintf(rp, "| Logica");
+                        }else{
+                            fprintf(rp, "|Libre");
+                            fprintf(rp, "| Ebr");
+                            fprintf(rp, "| Logica");
+                        }
+
+                        fseek(f, Ebr.Part_Next,SEEK_SET);
+                        fread(&Ebr, sizeof(Ebr), 1,f);
+                    }
+                }else{
+                    fprintf(rp, "| {Ebr");
+                    fprintf(rp, "|           Libre         ");
+                }
+                fprintf(rp, "}");
+                fprintf(rp, "}");
+            }else{
+                fprintf(rp, "|   Particion    ");
+            }
+        }
+    }
+    if(Mbr.Mbr_Partition_3.Uso == 22){
+        if(Mbr.Mbr_Partition_3.Part_Start == (Mbr.Mbr_Partition_2.Part_Start + Mbr.Mbr_Partition_2.Part_Size)){
+            if(strcmp(Mbr.Mbr_Partition_3.Part_Type, "E") == 0){
+                fseek(f, (Mbr.Mbr_Partition_3.Part_Start + +sizeof(Mbr.Mbr_Partition_3)),SEEK_SET);
+                fread(&Ebr, sizeof(Ebr), 1,f);
+                fprintf(rp, "| { Extendida");
+                ebri = 0;
+                if(Ebr.Part_Size != 0){
+                    fprintf(rp, "| {Ebr");
+                    fprintf(rp, "| Logica");
+                    while(Ebr.Part_Next != -1){
+                        if(Ebr.Part_Next == (Ebr.Part_Start + Ebr.Part_Size)){
+                            fprintf(rp, "| Ebr");
+                            fprintf(rp, "| Logica");
+                        }else{
+                            fprintf(rp, "|Libre");
+                            fprintf(rp, "| Ebr");
+                            fprintf(rp, "| Logica");
+                        }
+
+                        fseek(f, Ebr.Part_Next,SEEK_SET);
+                        fread(&Ebr, sizeof(Ebr), 1,f);
+                    }
+                }else{
+                    fprintf(rp, "| {Ebr");
+                    fprintf(rp, "|           Libre         ");
+                }
+                fprintf(rp, "}");
+                fprintf(rp, "}");
+            }
+            fprintf(rp, "|       Particion      ");
+        }else{
+            fprintf(rp, "| Libre");
+            if(strcmp(Mbr.Mbr_Partition_3.Part_Type, "E") == 0){
+                fseek(f, (Mbr.Mbr_Partition_3.Part_Start + +sizeof(Mbr.Mbr_Partition_3)),SEEK_SET);
+                fread(&Ebr, sizeof(Ebr), 1,f);
+                fprintf(rp, "| { Extendida");
+                ebri = 0;
+                if(Ebr.Part_Size != 0){
+                    fprintf(rp, "| {Ebr");
+                    fprintf(rp, "| Logica");
+                    while(Ebr.Part_Next != -1){
+                        if(Ebr.Part_Next == (Ebr.Part_Start + Ebr.Part_Size)){
+                            fprintf(rp, "| Ebr");
+                            fprintf(rp, "| Logica");
+                        }else{
+                            fprintf(rp, "|Libre");
+                            fprintf(rp, "| Ebr");
+                            fprintf(rp, "| Logica");
+                        }
+
+                        fseek(f, Ebr.Part_Next,SEEK_SET);
+                        fread(&Ebr, sizeof(Ebr), 1,f);
+                    }
+                }else{
+                    fprintf(rp, "| {Ebr");
+                    fprintf(rp, "|           Libre         ");
+                }
+                fprintf(rp, "}");
+                fprintf(rp, "}");
+            }else{
+                fprintf(rp, "|   Particion    ");
+            }
+        }
+    }
+    if(Mbr.Mbr_Partition_4.Uso == 22){
+        if(Mbr.Mbr_Partition_4.Part_Start == (Mbr.Mbr_Partition_3.Part_Start + Mbr.Mbr_Partition_3.Part_Size)){
+            if(strcmp(Mbr.Mbr_Partition_4.Part_Type, "E") == 0){
+                fseek(f, (Mbr.Mbr_Partition_4.Part_Start + +sizeof(Mbr.Mbr_Partition_4)),SEEK_SET);
+                fread(&Ebr, sizeof(Ebr), 1,f);
+                fprintf(rp, "| { Extendida");
+                ebri = 0;
+                if(Ebr.Part_Size != 0){
+                    fprintf(rp, "| {Ebr");
+                    fprintf(rp, "| Logica");
+                    while(Ebr.Part_Next != -1){
+                        if(Ebr.Part_Next == (Ebr.Part_Start + Ebr.Part_Size)){
+                            fprintf(rp, "| Ebr");
+                            fprintf(rp, "| Logica");
+                        }else{
+                            fprintf(rp, "|Libre");
+                            fprintf(rp, "| Ebr");
+                            fprintf(rp, "| Logica");
+                        }
+
+                        fseek(f, Ebr.Part_Next,SEEK_SET);
+                        fread(&Ebr, sizeof(Ebr), 1,f);
+                    }
+                }else{
+                    fprintf(rp, "| {Ebr");
+                    fprintf(rp, "|           Libre         ");
+                }
+                fprintf(rp, "}");
+                fprintf(rp, "}");
+            }
+            fprintf(rp, "|       Particion      ");
+        }else{
+            fprintf(rp, "| Libre");
+            if(strcmp(Mbr.Mbr_Partition_4.Part_Type, "E") == 0){
+                fseek(f, (Mbr.Mbr_Partition_4.Part_Start + +sizeof(Mbr.Mbr_Partition_4)),SEEK_SET);
+                fread(&Ebr, sizeof(Ebr), 1,f);
+                fprintf(rp, "| { Extendida");
+                ebri = 0;
+                if(Ebr.Part_Size != 0){
+                    fprintf(rp, "| {Ebr");
+                    fprintf(rp, "| Logica");
+                    while(Ebr.Part_Next != -1){
+                        if(Ebr.Part_Next == (Ebr.Part_Start + Ebr.Part_Size)){
+                            fprintf(rp, "| Ebr");
+                            fprintf(rp, "| Logica");
+                        }else{
+                            fprintf(rp, "|Libre");
+                            fprintf(rp, "| Ebr");
+                            fprintf(rp, "| Logica");
+                        }
+
+                        fseek(f, Ebr.Part_Next,SEEK_SET);
+                        fread(&Ebr, sizeof(Ebr), 1,f);
+                    }
+                }else{
+                    fprintf(rp, "| {Ebr");
+                    fprintf(rp, "|           Libre         ");
+                }
+                fprintf(rp, "}");
+                fprintf(rp, "}");
+            }else{
+                fprintf(rp, "|   Particion    ");
+            }
+        }
+    }
+
+    fprintf(rp, "}}\"\n");
+    fprintf(rp, "shape = \"record\"\n style=filled \n");
+    fprintf(rp, "];\n");
+    fprintf(rp, "}");
+    fclose(rp);
+    fclose(f);
+}
+
+void RepMbr(char ide[5], char destino[100]){
+    char direc[150];
+    strcpy(direc, "");
+    FILE *rp;
+    rp = fopen("RepMbr.dot","w");
+
+    struct LtsMountDisk *MountAux;
+    struct LtsMountDisk *MountAux2;
+
+    bool exist = false;
+    MountAux = primero;
+    if(ide[0] == 'v' && ide[1] == 'd'){
+        int letra = (int)ide[2];
+        char aux[2];
+        strcpy(aux, "");
+        strcat(aux, &ide[3]);
+        strcat(aux, &ide[4]);
+
+        int num = atoi(aux);
+        while(MountAux != NULL){
+            MountAux2 = MountAux;
+            while(MountAux2 != NULL){
+                if(MountAux2->Letra == letra && MountAux2->Numero == num){
+                    strcat(direc, MountAux2->Directorio);
+                    exist = true;
+                    break;
+                }
+                MountAux2 = MountAux2->Abajo;
+            }
+            if(exist == true){
+                break;
+            }
+            MountAux = MountAux->Siguiente;
+        }
+    }else{
+        printf("Error Identificador no Valido\n\n");
+    }
+    if(exist == false){
+        printf("Error - NO se encontro particion Montada\n");
+    }
+
+    struct EstDisk EDisk;
+    struct MasterBoot Mbr;
+    //struct Partition Part;
+
+    struct ExtendedBoot Ebr;
+
+    int ebri;
+
+    FILE *f = fopen (direc, "rb+");//Buscamo el Archivo y lo abrimos
+    if(f == NULL){
+        printf("Error - Disco No existe... ingrese una Path Valida\n\n");
+        return;
+    }
+    fseek(f,direc,SEEK_SET);//tomamo los punteros del datos del archivo
+    //tomamos la informacion de la memorio
+    fread(&EDisk,sizeof(EDisk),1,f);
+    fread(&Mbr, sizeof(Mbr), 1,f);
+
+
+    fprintf(rp, "digraph G{\n");
+
+    //Crea Nodo de MBR
+    fprintf(rp, "\"Node0\" [\n");
+    //abel = "   {           Reporte| { {NOmbre | kjb        | kjksd|bdsda|kjk} | { VAlor| dsadp|dsado|idsad|asdau} }}"
+    fprintf(rp, "label = \"{ Mbr %s | ", EDisk.nombre);
+    fprintf(rp, "{ { Nombre | Mbr_Tamano | Mbr_Fecha_Creacion | Mbr_Disk_Signature ");
+
+    if(Mbr.Mbr_Partition_1.Uso == 22){
+        fprintf(rp, "| Part_Status_1 | Part_Type_1 | Part_Fit_1 | Part_Start_1 | Part_Size_1 | Part_Name_1 ");
+    }
+    if(Mbr.Mbr_Partition_2.Uso == 22){
+        fprintf(rp, "| Part_Status_2 | Part_Type_2 | Part_Fit_2 | Part_Start_2 | Part_Size_2 | Part_Name_2 ");
+    }
+    if(Mbr.Mbr_Partition_3.Uso == 22){
+        fprintf(rp, "| Part_Status_3 | Part_Type_3 | Part_Fit_3 | Part_Start_3 | Part_Size_3 | Part_Name_3 ");
+    }
+    if(Mbr.Mbr_Partition_4.Uso == 22){
+        fprintf(rp, "| Part_Status_4 | Part_Type_4 | Part_Fit_4 | Part_Start_4 | Part_Size_4 | Part_Name_4 ");
+    }
+
+    fprintf(rp, "} | { ");
+
+    fprintf(rp, "Valor | ");
+    fprintf(rp, "%d | ", Mbr.Mbr_Tamano);
+    fprintf(rp, "%s | ", Mbr.Mbr_Fecha_Creacion);
+    fprintf(rp, "%d ", Mbr.Mbr_Disk_Signature);
+
+
+    if(Mbr.Mbr_Partition_1.Uso == 22){
+        fprintf(rp, "| %s | ", Mbr.Mbr_Partition_1.Part_Status);
+        fprintf(rp, "%s | ", Mbr.Mbr_Partition_1.Part_Type);
+        fprintf(rp, "%s | ", Mbr.Mbr_Partition_1.Part_Fit);
+        fprintf(rp, "%d | ", Mbr.Mbr_Partition_1.Part_Start);
+        fprintf(rp, "%d | ", Mbr.Mbr_Partition_1.Part_Size);
+        fprintf(rp, "%s ", Mbr.Mbr_Partition_1.Part_Name);
+    }
+    if(Mbr.Mbr_Partition_2.Uso == 22){
+        fprintf(rp, "| %s | ", Mbr.Mbr_Partition_2.Part_Status);
+        fprintf(rp, "%s | ", Mbr.Mbr_Partition_2.Part_Type);
+        fprintf(rp, "%s | ", Mbr.Mbr_Partition_2.Part_Fit);
+        fprintf(rp, "%d | ", Mbr.Mbr_Partition_2.Part_Start);
+        fprintf(rp, "%d | ", Mbr.Mbr_Partition_2.Part_Size);
+        fprintf(rp, "%s ", Mbr.Mbr_Partition_2.Part_Name);
+    }
+    if(Mbr.Mbr_Partition_3.Uso == 22){
+        fprintf(rp, "| %s | ", Mbr.Mbr_Partition_3.Part_Status);
+        fprintf(rp, "%s | ", Mbr.Mbr_Partition_3.Part_Type);
+        fprintf(rp, "%s | ", Mbr.Mbr_Partition_3.Part_Fit);
+        fprintf(rp, "%d | ", Mbr.Mbr_Partition_3.Part_Start);
+        fprintf(rp, "%d | ", Mbr.Mbr_Partition_3.Part_Size);
+        fprintf(rp, "%s ", Mbr.Mbr_Partition_3.Part_Name);
+    }
+    if(Mbr.Mbr_Partition_4.Uso == 22){
+        fprintf(rp, "| %s | ", Mbr.Mbr_Partition_4.Part_Status);
+        fprintf(rp, "%s | ", Mbr.Mbr_Partition_4.Part_Type);
+        fprintf(rp, "%s | ", Mbr.Mbr_Partition_4.Part_Fit);
+        fprintf(rp, "%d | ", Mbr.Mbr_Partition_4.Part_Start);
+        fprintf(rp, "%d | ", Mbr.Mbr_Partition_4.Part_Size);
+        fprintf(rp, "%s", Mbr.Mbr_Partition_4.Part_Name);
+    }
+    fprintf(rp, "} }}\" \n");
+    fprintf(rp, "shape = \"record\"\n style=filled \n");
+    fprintf(rp, "];\n");
+
+
+    if(strcmp(Mbr.Mbr_Partition_1.Part_Type, "E") == 0){
+        fseek(f, (Mbr.Mbr_Partition_1.Part_Start + +sizeof(Mbr.Mbr_Partition_1)),SEEK_SET);
+        fread(&Ebr, sizeof(Ebr), 1,f);
+    }else if(strcmp(Mbr.Mbr_Partition_2.Part_Type, "E") == 0){
+        fseek(f, (Mbr.Mbr_Partition_2.Part_Start + +sizeof(Mbr.Mbr_Partition_2)),SEEK_SET);
+        fread(&Ebr, sizeof(Ebr), 1,f);
+    }else if(strcmp(Mbr.Mbr_Partition_3.Part_Type, "E") == 0){
+        fseek(f, (Mbr.Mbr_Partition_3.Part_Start + +sizeof(Mbr.Mbr_Partition_3)),SEEK_SET);
+        fread(&Ebr, sizeof(Ebr), 1,f);
+    }else if(strcmp(Mbr.Mbr_Partition_4.Part_Type, "E") == 0){
+        fseek(f, (Mbr.Mbr_Partition_4.Part_Start + +sizeof(Mbr.Mbr_Partition_4)),SEEK_SET);
+        fread(&Ebr, sizeof(Ebr), 1,f);
+    }
+
+
+    ebri = 1;
+    if(Ebr.Part_Size != 0){
+        fprintf(rp, "\"NodeE%d\" [\n", ebri);
+        fprintf(rp, "label = \"{ Ebr - %s_%d | ", Ebr.Part_Name, ebri);
+        fprintf(rp, "{ { Nombre | Part_Status_%d | Part_Fit_%d | Part_Start_%d ", ebri, ebri, ebri);
+        fprintf(rp, "| Part_Size_%d | Part_Next_%d | Part_Name_%d ", ebri, ebri, ebri);
+
+        fprintf(rp, "} | { ");
+        fprintf(rp, "Valor ");
+
+        fprintf(rp, "| %s | ", Ebr.Part_Status);
+        fprintf(rp, "%s | ", Ebr.Part_Fit);
+        fprintf(rp, "%d | ", Ebr.Part_Start);
+        fprintf(rp, "%d | ", Ebr.Part_Size);
+        fprintf(rp, "%d |",  Ebr.Part_Next);
+        fprintf(rp, "%s ", Ebr.Part_Name);
+
+        fprintf(rp, "} }}\" \n");
+        fprintf(rp, "shape = \"record\"\n");
+        fprintf(rp, "];\n\n");
+
+        ebri++;
+        while(Ebr.Part_Next != -1){
+            fseek(f, Ebr.Part_Next,SEEK_SET);
+            fread(&Ebr, sizeof(Ebr), 1,f);
+
+            fprintf(rp, "\"NodeE%d\" [\n", ebri);
+            fprintf(rp, "label = \"{ Ebr - %s_%d | ", Ebr.Part_Name, ebri);
+            fprintf(rp, "{ { Nombre | Part_Status_%d | Part_Fit_%d | Part_Start_%d ", ebri, ebri, ebri);
+            fprintf(rp, "| Part_Size_%d | Part_Next_%d | Part_Name_%d ", ebri, ebri, ebri);
+
+            fprintf(rp, "} | { ");
+            fprintf(rp, "Valor ");
+
+            fprintf(rp, "| %s | ", Ebr.Part_Status);
+            fprintf(rp, "%s | ", Ebr.Part_Fit);
+            fprintf(rp, "%d | ", Ebr.Part_Start);
+            fprintf(rp, "%d | ", Ebr.Part_Size);
+            fprintf(rp, "%d |",  Ebr.Part_Next);
+            fprintf(rp, "%s ", Ebr.Part_Name);
+
+            fprintf(rp, "} }}\" \n");
+            fprintf(rp, "shape = \"record\"\n");
+            fprintf(rp, "];\n\n");
+
+            ebri++;
+        }
+    }
+    fprintf(rp, "}");
+    fclose(rp);
+    fclose(f);
+
+    char drd[130];
+    strcpy(drd, "dot -Tjpg RepMbr.dot > ");
+    strcat(drd, destino);
+    system(drd);
 }
 
 //*********************************************************************************************************//
@@ -2328,9 +2895,9 @@ void Comando(char Cadena[300]){
     }else if(rep == true){
         if(PthDirB == true && idn == true && NameDiskB == true){
             if(strcmp(NameDisk, "mbr") == 0){
-                printf(" SI esta corecto\n");
+                RepMbr(iden, NameDisk);
             }else if(strcmp(NameDisk, "disk") == 0){
-
+                RepDisk(iden, NameDisk);
             }else if(strcmp(NameDisk, "tree") == 0){
 
             }
