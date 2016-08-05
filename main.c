@@ -131,48 +131,6 @@ char LetraMountSig(char lets[4]){
     }
 }
 
-/*
-
-        struct LtsMountDisk *aux;
-        aux = primero;
-        while(aux != NULL){
-            id = LetraMountSig(aux->Letra);
-            if(strcmp(aux->Disco, nomb) == 0){
-                struct LtsMountDisk *aux2;
-                aux2 = arriba;
-                num = true;
-                strcpy(sil, "");
-                strcat(sil, aux->Letra);
-                while(aux2 != NULL){
-                    if(strcmp(aux2->Particion, Name) == 0){
-                        letr = true;
-                        nletra = numero;
-                    }
-                    numero++;
-                    aux = aux->Abajo;
-                }
-            }
-            aux = aux->Siguiente;
-        }
-
-        if(num == true && letr == true){
-            printf("Error - La Particion ya esta Montada\n");
-            return;
-        }else if(num == true){
-            strcpy(NMount->Letra, sil);
-            NMount->Numero = numero;
-            strcpy(NMount->Particion, Name);
-            strcpy(NMount->Disco, nomb);
-            ultimo->Siguiente = NMount;
-        }else if(num == false){
-            strcpy(NMount->Letra, id);
-            NMount->Numero = 1;
-            strcpy(NMount->Particion, Name);
-            strcpy(NMount->Disco, nomb);
-            abajo->Abajo = NMount;
-        }
-*/
-
 void MountDisk(char direc[150], char Name[16]){
     //Comprueba si existe el Disco, si Existe devuelve su inf mbr
     FILE *f = fopen (direc, "rb+");
@@ -967,29 +925,6 @@ void FDisk(int Size, char Direc[100], char Name[16], int Unit, int Type, int Fit
             fwrite(&Ebr,sizeof(Ebr),1,f);
         }
          printf("Se Creo Particion Exitosamente\n\n");
-        /*
-        if((part2_ini - mbr_size) >= Size){
-            Part.Part_Start = mbr_size;//asignacion donde inicia el disco +1
-            Mbr.Mbr_Partition_1 = Part;
-            //tomamos la posicion donde se almacena o cambiamos la informacion
-            fseek(f, sizeof(EDisk),SEEK_SET); //pueod usarlo y modifica info
-            fwrite(&Mbr,sizeof(Mbr),1,f);
-
-            fseek(f, Part.Part_Start,SEEK_SET);
-            fwrite(&Mbr.Mbr_Partition_1,sizeof(Mbr.Mbr_Partition_1),1,f);
-
-            if(Type == 1){// si es extendida
-                Ebr.Part_Next = -1;
-                Ebr.Part_Size = 0;
-
-                fseek(f, (Part.Part_Start + sizeof(Mbr.Mbr_Partition_1)),SEEK_SET);
-                fwrite(&Ebr,sizeof(Ebr),1,f);
-            }
-            printf("Se Creo Particion Exitosamente\n\n");
-        }else{
-            printf("Error - Tamano de la particion es demsiado grande\n");
-        }
-        */
     }else if(((part3_ini - part1_fina) >= Size) && Mbr.Mbr_Partition_2.Part_Size == 0 && Mbr.Mbr_Partition_1.Part_Size != 0 && Mbr.Mbr_Partition_3.Part_Size != 0 || ((part4_ini - part1_fina) >= Size && Mbr.Mbr_Partition_2.Part_Size == 0 && Mbr.Mbr_Partition_3.Part_Size == 0)){
         //if((part1_fina < part2_ini)){
         //libre particion 2 y 3, y hay libre en esa parte de cuatro
@@ -1011,45 +946,6 @@ void FDisk(int Size, char Direc[100], char Name[16], int Unit, int Type, int Fit
             fwrite(&Ebr,sizeof(Ebr),1,f);
         }
          printf("Se Creo Particion Exitosamente\n\n");
-
-        /*
-        part1_libr = part2_ini - part1_fina;
-        //if(part1_libr >= Size){
-            struct Partition partaux;
-            struct Partition partaux2;
-            partaux = Mbr.Mbr_Partition_2;
-
-            rewind(f);
-            //verificar ndisk_size para ver si funcion de lo contrario quitarlo
-            ndisk_size = ndisk_size - part1_size - part2_size - part3_size - part4_size;
-            //if(ndisk_size >= Size){
-                Part.Part_Start = mbr_size + part1_size;//asignacion donde inicia el disco +2
-                Mbr.Mbr_Partition_2 = Part;
-                partaux2 = Mbr.Mbr_Partition_3;
-                Mbr.Mbr_Partition_3 = partaux;//particion2
-                Mbr.Mbr_Partition_4 = partaux2;
-
-                //tomamos la posicion donde se almacena o cambiamos la informacion
-                fseek(f, sizeof(EDisk),SEEK_SET); //pueod usarlo y modifica info
-                fwrite(&Mbr,sizeof(Mbr),1,f);
-
-                fseek(f, Part.Part_Start,SEEK_SET);
-                fwrite(&Part,sizeof(Part),1,f);
-
-                if(Type == 1){
-                    Ebr.Part_Next = -1;
-                    Ebr.Part_Size = 0;
-
-                    fseek(f, (Part.Part_Start + sizeof(Part)),SEEK_SET);
-                    fwrite(&Ebr,sizeof(Ebr),1,f);
-                }
-
-                printf("Se Creo Particion Exitosamente\n\n");
-            //}else{
-                //printf("Error - Tamano de la particion es demsiado grande\n");
-            //}
-        //}
-                */
 
     }else if((part1_fina < part2_ini) && (part2_ini != 0) && (part2_ini - part1_fina) >= Size){
         struct Partition partaux;
@@ -1100,38 +996,6 @@ void FDisk(int Size, char Direc[100], char Name[16], int Unit, int Type, int Fit
         fseek(f, Part.Part_Start,SEEK_SET);
         fwrite(&Part,sizeof(Part),1,f);
         printf("Se Creo Particion Exitosamente\n\n");
-        /*
-        part2_libr = part3_ini - part2_fina;
-        if(part2_libr >= Size){
-            struct Partition partaux;
-            partaux = Mbr.Mbr_Partition_3;
-            rewind(f);
-            ndisk_size = ndisk_size - part1_size - part2_size - part3_size - part4_size;
-            if(ndisk_size >= Size){
-                Part.Part_Start = mbr_size + part1_size + part2_size;//asignacion donde inicia el disco + 3
-                Mbr.Mbr_Partition_3 = Part;
-                Mbr.Mbr_Partition_4 = partaux;//pasa a se aux 4
-
-                //tomamos la posicion donde se almacena o cambiamos la informacion
-                fseek(f, sizeof(EDisk),SEEK_SET); //pueod usarlo y modifica info
-                fwrite(&Mbr,sizeof(Mbr),1,f);
-
-                fseek(f, Part.Part_Start,SEEK_SET);
-                fwrite(&Part,sizeof(Part),1,f);
-
-                if(Type == 1){
-                    Ebr.Part_Next = -1;
-                    Ebr.Part_Size = 0;
-
-                    fseek(f, (Part.Part_Start + sizeof(Part)),SEEK_SET);
-                    fwrite(&Ebr,sizeof(Ebr),1,f);
-                }
-                printf("Se Creo Particion Exitosamente\n\n");
-            }else{
-                printf("Error - Tamano de la particion es demsiado grande\n");
-            }
-        }
-        */
     }else if((part3_fina < part4_ini)){
         part3_libr = part4_ini - part3_fina;
         if(part3_libr >= Size){
@@ -1563,17 +1427,6 @@ void DeleteFdisk(char Direc[100], char Name[16], int formato){
             }
 
         }
-        /*
-        else if(formato == 1){//full
-            fseek(f, pos,SEEK_SET);
-            for(ifor = initama; ifor < tama; ifor++){
-                fwrite (ft, sizeof(ft), 1024, f);
-            }
-            printf("Se Elimino la Particion\n");
-            si = true;
-        }
-        */
-
     }else if(strcmp(Mbr.Mbr_Partition_2.Part_Name, Name) == 0){
         tama = (Mbr.Mbr_Partition_2.Part_Start + Mbr.Mbr_Partition_2.Part_Size)/1024;//convierto a kylobytes
         initama = Mbr.Mbr_Partition_2.Part_Start/1024;
@@ -1651,9 +1504,9 @@ void DeleteFdisk(char Direc[100], char Name[16], int formato){
                 //for(ifor = (Ebrr.Part_Start + sizeof(Ebrr)); ifor < (Ebr.Part_Start + Ebr.Part_Size); ifor++){
                     fwrite (buffer, sizeof(buffer), 1024, f);
                 }
-                printf("Se elimino la particion correctamente\n");
-                si = true;
             }
+            si = true;
+            printf("Se Elimino la Particion Logic Correctamente\n");
         }else{
             struct ExtendedBoot EbrAnt;
             while(Ebr.Part_Next != -1){
@@ -1675,9 +1528,9 @@ void DeleteFdisk(char Direc[100], char Name[16], int formato){
                         for(ifor = (Ebr.Part_Start/1024); ifor < ((Ebr.Part_Start + Ebr.Part_Size)/1024); ifor++){
                             fwrite (buffer, sizeof(buffer), 1024, f);
                         }
-                        si = true;
-                        printf("Se Elimino la Particion Logic Correctamente\n");
                     }
+                    si = true;
+                    printf("Se Elimino la Particion Logic Correctamente\n");
                     break;
 
                 }
@@ -1700,9 +1553,9 @@ void DeleteFdisk(char Direc[100], char Name[16], int formato){
                 //for(ifor = (Ebrr.Part_Start + sizeof(Ebrr)); ifor < (Ebr.Part_Start + Ebr.Part_Size); ifor++){
                     fwrite (buffer, sizeof(buffer), 1024, f);
                 }
-                si = true;
-                printf("Se Elimino la Particion Logic Correctamente\n");
             }
+            si = true;
+            printf("Se Elimino la Particion Logic Correctamente\n");
         }else{
             struct ExtendedBoot EbrAnt;
             while(Ebr.Part_Next != -1){
@@ -1724,11 +1577,10 @@ void DeleteFdisk(char Direc[100], char Name[16], int formato){
                         for(ifor = (Ebr.Part_Start/1024); ifor < ((Ebr.Part_Start + Ebr.Part_Size)/1024); ifor++){
                             fwrite (buffer, sizeof(buffer), 1024, f);
                         }
-                        si = true;
-                        printf("Se Elimino la Particion Logic Correctamente\n");
                     }
+                    si = true;
+                    printf("Se Elimino la Particion Logic Correctamente\n");
                     break;
-
                 }
             }
         }
@@ -1749,9 +1601,9 @@ void DeleteFdisk(char Direc[100], char Name[16], int formato){
                 //for(ifor = (Ebrr.Part_Start + sizeof(Ebrr)); ifor < (Ebr.Part_Start + Ebr.Part_Size); ifor++){
                     fwrite (buffer, sizeof(buffer), 1024, f);
                 }
-                si = true;
-                printf("Se Elimino la Particion Logic Correctamente\n");
             }
+            si = true;
+            printf("Se Elimino la Particion Logic Correctamente\n");
         }else{
             struct ExtendedBoot EbrAnt;
             while(Ebr.Part_Next != -1){
@@ -1773,15 +1625,15 @@ void DeleteFdisk(char Direc[100], char Name[16], int formato){
                         for(ifor = (Ebr.Part_Start/1024); ifor < ((Ebr.Part_Start + Ebr.Part_Size)/1024); ifor++){
                             fwrite (buffer, sizeof(buffer), 1024, f);
                         }
-                        si = true;
-                        printf("Se Elimino la Particion Logic Correctamente\n");
                     }
+                    si = true;
+                    printf("Se Elimino la Particion Logic Correctamente\n");
                     break;
                 }
             }
         }
     }else if(strcmp(Mbr.Mbr_Partition_4.Part_Type, "E") == 0){
-        fseek(f, (Mbr.Mbr_Partition_4.Part_Start + +sizeof(Mbr.Mbr_Partition_4)),SEEK_SET);
+        fseek(f, (Mbr.Mbr_Partition_4.Part_Start + sizeof(Mbr.Mbr_Partition_4)),SEEK_SET);
         fread(&Ebr, sizeof(Ebr), 1,f);
 
         if(strcmp(Ebr.Part_Name, Name) == 0){
@@ -1794,12 +1646,11 @@ void DeleteFdisk(char Direc[100], char Name[16], int formato){
 
             if(formato == 1){
                 for(ifor = (Ebrr.Part_Start + sizeof(Ebrr)/1024); ifor < ((Ebr.Part_Start + Ebr.Part_Size)/1024); ifor++){
-                //for(ifor = (Ebrr.Part_Start + sizeof(Ebrr)); ifor < (Ebr.Part_Start + Ebr.Part_Size); ifor++){
                     fwrite (buffer, sizeof(buffer), 1024, f);
                 }
-                si = true;
-                printf("Se Elimino la Particion Logic Correctamente\n");
             }
+            si = true;
+            printf("Se Elimino la Particion Logic Correctamente\n");
         }else{
             struct ExtendedBoot EbrAnt;
             while(Ebr.Part_Next != -1){
@@ -1821,9 +1672,9 @@ void DeleteFdisk(char Direc[100], char Name[16], int formato){
                         for(ifor = (Ebr.Part_Start/1024); ifor < ((Ebr.Part_Start + Ebr.Part_Size)/1024); ifor++){
                             fwrite (buffer, sizeof(buffer), 1024, f);
                         }
-                        si = true;
-                        printf("Se Elimino la Particion Logic Correctamente\n");
                     }
+                    si = true;
+                    printf("Se Elimino la Particion Logic Correctamente\n");
                     break;
                 }
             }
@@ -1835,6 +1686,730 @@ void DeleteFdisk(char Direc[100], char Name[16], int formato){
         printf("No se encontro ninguna particion con ese Nombre\n\n");
     }
     fclose(f);
+
+}
+
+void AddFDisk(int Size, char Direc[100], char Name[16], int Unit){
+    struct EstDisk EDisk;
+    struct MasterBoot Mbr;
+    struct Partition Part;
+
+    struct ExtendedBoot Ebr = {};
+
+    //creamos archivo
+    FILE *f = fopen (Direc, "rb+");//Buscamo el Archivo y lo abrimos
+    if(f == NULL){
+        printf("Error - Disco No existe... ingrese una Path Valida\n\n");
+        return;
+    }
+    fseek(f,Direc,SEEK_SET);//tomamo los punteros del datos del archivo
+    //tomamos la informacion de la memorio
+    fread(&EDisk,sizeof(EDisk),1,f);
+    fread(&Mbr, sizeof(Mbr), 1,f);
+
+    //asigna el tamno del disco con la que se asigna
+    if(Unit == 0){
+        Size = Size*1024*1024;//entrada en mega salida en tamano en bytes
+    }else if(Unit ==1){
+        Size = Size*1024;//entrada en kilobytes salida en tamano en bytes
+    }else if(Unit == 2){
+        Size = Size;
+    }
+
+    int ta;
+    if(strcmp(Mbr.Mbr_Partition_1.Part_Type, "E") == 0){
+
+        Part = Mbr.Mbr_Partition_1;
+
+        fseek(f, (Mbr.Mbr_Partition_1.Part_Start + sizeof(Mbr.Mbr_Partition_1)),SEEK_SET);
+        fread(&Ebr, sizeof(Ebr), 1,f);
+
+        if(strcmp(Ebr.Part_Name, Name) == 0){
+            ta =(Ebr.Part_Start + Ebr.Part_Size) ;
+            if(ta == Ebr.Part_Next){
+                printf("Error - NO hay espacio Continuo para Aumentar El espacio del Disco..\n\n");
+            }else {
+                ta = (Ebr.Part_Next - Ebr.Part_Start - Ebr.Part_Size);
+                if(ta > Size){
+                    Ebr.Part_Size = Ebr.Part_Size + Size;
+
+                    fseek(f, Ebr.Part_Start,SEEK_SET);
+                    fwrite(&Ebr, sizeof(Ebr), 1,f);
+
+                    printf("\nSe Extendio En Espacio Exitosamente\n\n");
+                }else{
+                    printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+                }
+            }
+            fclose(f);
+            return;
+        }else{
+            struct ExtendedBoot EbrAnt;
+            while(Ebr.Part_Next != -1){
+                EbrAnt = Ebr;
+
+                fseek(f, Ebr.Part_Next,SEEK_SET);
+                fread(&Ebr, sizeof(Ebr), 1,f);
+
+                if(strcmp(Ebr.Part_Name, Name) == 0){
+                    ta = (Ebr.Part_Start + Ebr.Part_Size);
+                    if(ta == Ebr.Part_Next){
+                        printf("Error - NO hay espacio Continuo para Aumentar El espacio del Disco..\n\n");
+                    }else {
+                        ta = (Mbr.Mbr_Partition_1.Part_Size - Ebr.Part_Start - Ebr.Part_Size);
+                        if(Ebr.Part_Next == -1 && ta >= Size){
+                            Ebr.Part_Size = Ebr.Part_Size + Size;
+
+                            fseek(f, Ebr.Part_Start,SEEK_SET);
+                            fwrite(&Ebr, sizeof(Ebr), 1,f);
+
+                            printf("\nSe Extendio En Espacio Exitosamente\n\n");
+                        }else if((Ebr.Part_Next - Ebr.Part_Start - Ebr.Part_Size) > Size){
+
+                            Ebr.Part_Size = Ebr.Part_Size + Size;
+
+                            fseek(f, Ebr.Part_Start,SEEK_SET);
+                            fwrite(&Ebr, sizeof(Ebr), 1,f);
+
+                            printf("\nSe Extendio En Espacio Exitosamente\n\n");
+                        }else{
+                            printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+                        }
+                    }
+                    fclose(f);
+                    return;
+                }
+            }
+        }
+    }else if(strcmp(Mbr.Mbr_Partition_2.Part_Type, "E") == 0){
+        Part = Mbr.Mbr_Partition_2;
+
+        fseek(f, (Mbr.Mbr_Partition_2.Part_Start + sizeof(Mbr.Mbr_Partition_2)),SEEK_SET);
+        fread(&Ebr, sizeof(Ebr), 1,f);
+
+        if(strcmp(Ebr.Part_Name, Name) == 0){
+            ta = Ebr.Part_Start + Ebr.Part_Size;
+            if(ta == Ebr.Part_Next){
+                printf("Error - NO hay espacio Continuo para Aumentar El espacio del Disco..\n\n");
+            }else {
+                ta = (Ebr.Part_Next - Ebr.Part_Start - Ebr.Part_Size);
+                if(ta > Size){
+                    Ebr.Part_Size = Ebr.Part_Size + Size;
+
+                    fseek(f, Ebr.Part_Start,SEEK_SET);
+                    fwrite(&Ebr, sizeof(Ebr), 1,f);
+
+                    printf("\nSe Extendio En Espacio Exitosamente\n\n");
+                }else{
+                    printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+                }
+            }
+            fclose(f);
+            return;
+        }else{
+            struct ExtendedBoot EbrAnt;
+            while(Ebr.Part_Next != -1){
+                EbrAnt = Ebr;
+
+                fseek(f, Ebr.Part_Next,SEEK_SET);
+                fread(&Ebr, sizeof(Ebr), 1,f);
+
+                if(strcmp(Ebr.Part_Name, Name) == 0){
+                    ta = (Ebr.Part_Start + Ebr.Part_Size);
+                    if(ta == Ebr.Part_Next){
+                        printf("Error - NO hay espacio Continuo para Aumentar El espacio del Disco..\n\n");
+                    }else {
+                        ta = (Mbr.Mbr_Partition_2.Part_Size - Ebr.Part_Start - Ebr.Part_Size);
+                        if(Ebr.Part_Next == -1 && ta >= Size){
+                            Ebr.Part_Size = Ebr.Part_Size + Size;
+
+                            fseek(f, Ebr.Part_Start,SEEK_SET);
+                            fwrite(&Ebr, sizeof(Ebr), 1,f);
+
+                            printf("\nSe Extendio En Espacio Exitosamente\n\n");
+                        }else if((Ebr.Part_Next - Ebr.Part_Start - Ebr.Part_Size) > Size){
+
+                            Ebr.Part_Size = Ebr.Part_Size + Size;
+
+                            fseek(f, Ebr.Part_Start,SEEK_SET);
+                            fwrite(&Ebr, sizeof(Ebr), 1,f);
+
+                            printf("\nSe Extendio En Espacio Exitosamente\n\n");
+                        }else{
+                            printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+                        }
+                    }
+                    fclose(f);
+                    return;
+                }
+            }
+        }
+    }else if(strcmp(Mbr.Mbr_Partition_3.Part_Type, "E") == 0){
+        Part = Mbr.Mbr_Partition_3;
+
+        fseek(f, (Mbr.Mbr_Partition_3.Part_Start + sizeof(Mbr.Mbr_Partition_3)),SEEK_SET);
+        fread(&Ebr, sizeof(Ebr), 1,f);
+
+        if(strcmp(Ebr.Part_Name, Name) == 0){
+            ta = (Ebr.Part_Start + Ebr.Part_Size);
+            if(ta == Ebr.Part_Next){
+                printf("Error - NO hay espacio Continuo para Aumentar El espacio del Disco..\n\n");
+            }else {
+                ta = (Ebr.Part_Next - Ebr.Part_Start - Ebr.Part_Size);
+                if(ta > Size){
+                    Ebr.Part_Size = Ebr.Part_Size + Size;
+
+                    fseek(f, Ebr.Part_Start,SEEK_SET);
+                    fwrite(&Ebr, sizeof(Ebr), 1,f);
+
+                    printf("\nSe Extendio En Espacio Exitosamente\n\n");
+                }else{
+                    printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+                }
+            }
+            fclose(f);
+            return;
+        }else{
+            struct ExtendedBoot EbrAnt;
+            while(Ebr.Part_Next != -1){
+                EbrAnt = Ebr;
+
+                fseek(f, Ebr.Part_Next,SEEK_SET);
+                fread(&Ebr, sizeof(Ebr), 1,f);
+
+                if(strcmp(Ebr.Part_Name, Name) == 0){
+                    ta = (Ebr.Part_Start + Ebr.Part_Size);
+                    if(ta == Ebr.Part_Next){
+                        printf("Error - NO hay espacio Continuo para Aumentar El espacio del Disco..\n\n");
+                    }else {
+                        ta = (Mbr.Mbr_Partition_3.Part_Size - Ebr.Part_Start - Ebr.Part_Size);
+                        if(Ebr.Part_Next == -1 && ta >= Size){
+                            Ebr.Part_Size = Ebr.Part_Size + Size;
+
+                            fseek(f, Ebr.Part_Start,SEEK_SET);
+                            fwrite(&Ebr, sizeof(Ebr), 1,f);
+
+                            printf("\nSe Extendio En Espacio Exitosamente\n\n");
+                        }else if((Ebr.Part_Next - Ebr.Part_Start - Ebr.Part_Size) > Size){
+
+                            Ebr.Part_Size = Ebr.Part_Size + Size;
+
+                            fseek(f, Ebr.Part_Start,SEEK_SET);
+                            fwrite(&Ebr, sizeof(Ebr), 1,f);
+
+                            printf("\nSe Extendio En Espacio Exitosamente\n\n");
+                        }else{
+                            printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+                        }
+                    }
+                    fclose(f);
+                    return;
+                }
+            }
+        }
+
+    }else if(strcmp(Mbr.Mbr_Partition_4.Part_Type, "E") == 0){
+        Part = Mbr.Mbr_Partition_4;
+
+        fseek(f, (Mbr.Mbr_Partition_4.Part_Start + sizeof(Mbr.Mbr_Partition_4)),SEEK_SET);
+        fread(&Ebr, sizeof(Ebr), 1,f);
+
+        if(strcmp(Ebr.Part_Name, Name) == 0){
+            ta = (Ebr.Part_Start + Ebr.Part_Size);
+            if(ta == Ebr.Part_Next){
+                printf("Error - NO hay espacio Continuo para Aumentar El espacio del Disco..\n\n");
+            }else {
+                ta = (Ebr.Part_Next - Ebr.Part_Start - Ebr.Part_Size);
+                if(ta > Size){
+                    Ebr.Part_Size = Ebr.Part_Size + Size;
+
+                    fseek(f, Ebr.Part_Start,SEEK_SET);
+                    fwrite(&Ebr, sizeof(Ebr), 1,f);
+
+                    printf("\nSe Extendio En Espacio Exitosamente\n\n");
+                }else{
+                    printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+                }
+            }
+            fclose(f);
+            return;
+        }else{
+            struct ExtendedBoot EbrAnt;
+            while(Ebr.Part_Next != -1){
+                EbrAnt = Ebr;
+
+                fseek(f, Ebr.Part_Next,SEEK_SET);
+                fread(&Ebr, sizeof(Ebr), 1,f);
+
+                if(strcmp(Ebr.Part_Name, Name) == 0){
+                    ta = (Ebr.Part_Start + Ebr.Part_Size);
+                    if(ta == Ebr.Part_Next){
+                        printf("Error - NO hay espacio Continuo para Aumentar El espacio del Disco..\n\n");
+                    }else {
+                        ta = (Mbr.Mbr_Partition_1.Part_Size - Ebr.Part_Start - Ebr.Part_Size);
+                        if(Ebr.Part_Next == -1 && ta >= Size){
+                            Ebr.Part_Size = Ebr.Part_Size + Size;
+
+                            fseek(f, Ebr.Part_Start,SEEK_SET);
+                            fwrite(&Ebr, sizeof(Ebr), 1,f);
+
+                            printf("\nSe Extendio En Espacio Exitosamente\n\n");
+                        }else if((Ebr.Part_Next - Ebr.Part_Start - Ebr.Part_Size) > Size){
+
+                            Ebr.Part_Size = Ebr.Part_Size + Size;
+
+                            fseek(f, Ebr.Part_Start,SEEK_SET);
+                            fwrite(&Ebr, sizeof(Ebr), 1,f);
+
+                            printf("\nSe Extendio En Espacio Exitosamente\n\n");
+                        }else{
+                            printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+                        }
+                    }
+                    fclose(f);
+                    return;
+                }
+            }
+        }
+    }
+
+
+    if(strcmp(Mbr.Mbr_Partition_1.Part_Name, Name) ==0 ){
+        if((Mbr.Mbr_Partition_1.Part_Start + Mbr.Mbr_Partition_1.Part_Size) == Mbr.Mbr_Partition_2.Part_Start){
+            printf("Error - NO hay espacio Continuo para Aumentar El espacio del Disco..\n\n");
+        }else {
+            bool addsp = false;
+            if(Mbr.Mbr_Partition_2.Part_Start != 0){
+                if((Mbr.Mbr_Partition_2.Part_Start - Mbr.Mbr_Partition_1.Part_Start - Mbr.Mbr_Partition_1.Part_Size) > Size){
+                    addsp = true;
+                }
+            }else if(Mbr.Mbr_Partition_2.Part_Start == 0 && Mbr.Mbr_Partition_3.Part_Start != 0){
+                if((Mbr.Mbr_Partition_3.Part_Start - Mbr.Mbr_Partition_1.Part_Start - Mbr.Mbr_Partition_1.Part_Size) > Size){
+                    addsp = true;
+                }
+            }else if(Mbr.Mbr_Partition_2.Part_Start == 0 && Mbr.Mbr_Partition_3.Part_Start == 0 && Mbr.Mbr_Partition_4.Part_Start != 0){
+                if((Mbr.Mbr_Partition_4.Part_Start - Mbr.Mbr_Partition_1.Part_Start - Mbr.Mbr_Partition_1.Part_Size) > Size){
+                    addsp = true;
+                }
+            }else if(Mbr.Mbr_Partition_2.Part_Start == 0 && Mbr.Mbr_Partition_3.Part_Start == 0 && Mbr.Mbr_Partition_4.Part_Start == 0){
+                if((Mbr.Mbr_Partition_1.Part_Start + Mbr.Mbr_Partition_1.Part_Size) <= Mbr.Mbr_Tamano){
+                    addsp == true;
+                }
+            }
+            if(addsp == true){
+                Part = Mbr.Mbr_Partition_1;
+                Part.Part_Size = Part.Part_Size + Size;
+
+                Mbr.Mbr_Partition_1 = Part;
+
+                fseek(f, sizeof(EDisk),SEEK_SET); //pueod usarlo y modifica info
+                fwrite(&Mbr,sizeof(Mbr),1,f);
+
+                fseek(f, Part.Part_Start,SEEK_SET);
+                fwrite(&Mbr.Mbr_Partition_1,sizeof(Mbr.Mbr_Partition_1),1,f);
+
+                printf("\nSe Extendio En Espacio Exitosamente\n\n");
+            }else{
+                printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+            }
+        }
+        fclose(f);
+        return;
+    }else if(strcmp(Mbr.Mbr_Partition_2.Part_Name, Name) ==0 ){
+        if((Mbr.Mbr_Partition_2.Part_Start + Mbr.Mbr_Partition_2.Part_Size) == Mbr.Mbr_Partition_3.Part_Start){
+            printf("Error - NO hay espacio Continuo para Aumentar El espacio del Disco..\n\n");
+        }else {
+            bool addsp = false;
+            if(Mbr.Mbr_Partition_3.Part_Start != 0){
+                if((Mbr.Mbr_Partition_3.Part_Start - Mbr.Mbr_Partition_2.Part_Start - Mbr.Mbr_Partition_2.Part_Size) > Size){
+                    addsp = true;
+                }
+            }else if(Mbr.Mbr_Partition_3.Part_Start == 0 && Mbr.Mbr_Partition_4.Part_Start != 0){
+                if((Mbr.Mbr_Partition_4.Part_Start - Mbr.Mbr_Partition_3.Part_Start - Mbr.Mbr_Partition_3.Part_Size) > Size){
+                    addsp = true;
+                }
+            }else if(Mbr.Mbr_Partition_3.Part_Start == 0 && Mbr.Mbr_Partition_4.Part_Start == 0){
+                if((Mbr.Mbr_Partition_2.Part_Start + Mbr.Mbr_Partition_2.Part_Size) <= Mbr.Mbr_Tamano){
+                    addsp == true;
+                }
+            }
+            if(addsp == true){
+                Part = Mbr.Mbr_Partition_2;
+                Part.Part_Size = Part.Part_Size + Size;
+
+                Mbr.Mbr_Partition_2 = Part;
+
+                fseek(f, sizeof(EDisk),SEEK_SET); //pueod usarlo y modifica info
+                fwrite(&Mbr,sizeof(Mbr),1,f);
+
+                fseek(f, Part.Part_Start,SEEK_SET);
+                fwrite(&Mbr.Mbr_Partition_2,sizeof(Mbr.Mbr_Partition_2),1,f);
+
+                printf("\nSe Extendio En Espacio Exitosamente\n\n");
+            }else{
+                printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+            }
+        }
+        fclose(f);
+        return;
+    }else if(strcmp(Mbr.Mbr_Partition_3.Part_Name, Name) ==0 ){
+        if((Mbr.Mbr_Partition_3.Part_Start + Mbr.Mbr_Partition_3.Part_Size) == Mbr.Mbr_Partition_4.Part_Start){
+            printf("Error - NO hay espacio Continuo para Aumentar El espacio del Disco..\n\n");
+        }else {
+            bool addsp = false;
+            if(Mbr.Mbr_Partition_4.Part_Start != 0){
+                if((Mbr.Mbr_Partition_4.Part_Start - Mbr.Mbr_Partition_3.Part_Start - Mbr.Mbr_Partition_3.Part_Size) > Size){
+                    addsp = true;
+                }
+            }else if(Mbr.Mbr_Partition_4.Part_Start == 0){
+                if((Mbr.Mbr_Partition_3.Part_Start + Mbr.Mbr_Partition_3.Part_Size) <= Mbr.Mbr_Tamano){
+                    addsp == true;
+                }
+            }
+            if(addsp == true){
+                Part = Mbr.Mbr_Partition_3;
+                Part.Part_Size = Part.Part_Size + Size;
+
+                Mbr.Mbr_Partition_3 = Part;
+
+                fseek(f, sizeof(EDisk),SEEK_SET); //pueod usarlo y modifica info
+                fwrite(&Mbr,sizeof(Mbr),1,f);
+
+                fseek(f, Part.Part_Start,SEEK_SET);
+                fwrite(&Mbr.Mbr_Partition_3,sizeof(Mbr.Mbr_Partition_3),1,f);
+                printf("\nSe Extendio En Espacio Exitosamente\n\n");
+            }else{
+                printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+            }
+        }
+        fclose(f);
+        return;
+    }else if(strcmp(Mbr.Mbr_Partition_4.Part_Name, Name) == 0 ){
+        if((Mbr.Mbr_Partition_4.Part_Start + Mbr.Mbr_Partition_4.Part_Size) >= Mbr.Mbr_Tamano){
+            printf("Error - NO hay espacio Continuo para Aumentar El espacio del Disco..\n\n");
+        }else {
+            bool addsp = false;
+            if((Mbr.Mbr_Partition_4.Part_Start + Mbr.Mbr_Partition_4.Part_Size) <= Mbr.Mbr_Tamano){
+                addsp == true;
+            }
+
+            if(addsp == true){
+                Part = Mbr.Mbr_Partition_4;
+                Part.Part_Size = Part.Part_Size + Size;
+
+                Mbr.Mbr_Partition_4 = Part;
+
+                fseek(f, sizeof(EDisk),SEEK_SET); //pueod usarlo y modifica info
+                fwrite(&Mbr,sizeof(Mbr),1,f);
+
+                fseek(f, Part.Part_Start,SEEK_SET);
+                fwrite(&Mbr.Mbr_Partition_4,sizeof(Mbr.Mbr_Partition_4),1,f);
+
+                printf("\nSe Extendio En Espacio Exitosamente\n\n");
+            }else{
+                printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+            }
+        }
+        fclose(f);
+        return;
+    }
+    printf("\nError - NO Existe La particion a Aumentar el Espacio\n\n");
+
+}
+
+void RedFDisk(int Size, char Direc[100], char Name[16], int Unit){
+    struct EstDisk EDisk;
+    struct MasterBoot Mbr;
+    struct Partition Part;
+
+    struct ExtendedBoot Ebr = {};
+
+    //creamos archivo
+    FILE *f = fopen (Direc, "rb+");//Buscamo el Archivo y lo abrimos
+    if(f == NULL){
+        printf("Error - Disco No existe... ingrese una Path Valida\n\n");
+        return;
+    }
+    fseek(f,Direc,SEEK_SET);//tomamo los punteros del datos del archivo
+    //tomamos la informacion de la memorio
+    fread(&EDisk,sizeof(EDisk),1,f);
+    fread(&Mbr, sizeof(Mbr), 1,f);
+
+    //asigna el tamno del disco con la que se asigna
+    if(Unit == 0){
+        Size = Size*1024*1024;//entrada en mega salida en tamano en bytes
+    }else if(Unit ==1){
+        Size = Size*1024;//entrada en kilobytes salida en tamano en bytes
+    }else if(Unit == 2){
+        Size = Size;
+    }
+
+    int ta;
+    if(strcmp(Mbr.Mbr_Partition_1.Part_Type, "E") == 0){
+        Part = Mbr.Mbr_Partition_1;
+        fseek(f, (Mbr.Mbr_Partition_1.Part_Start + sizeof(Mbr.Mbr_Partition_1)),SEEK_SET);
+        fread(&Ebr, sizeof(Ebr), 1,f);
+
+        ta = (Ebr.Part_Size - sizeof(Ebr) - Size);
+
+        if(strcmp(Ebr.Part_Name, Name) == 0){
+            if(ta > 0){
+                Ebr.Part_Size = Ebr.Part_Size - Size;
+
+                fseek(f, Ebr.Part_Start,SEEK_SET);
+                fwrite(&Ebr, sizeof(Ebr), 1,f);
+
+                printf("\nSe Extendio En Espacio Exitosamente\n\n");
+            }else{
+                printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+            }
+            fclose(f);
+            return;
+        }else{
+            struct ExtendedBoot EbrAnt;
+            while(Ebr.Part_Next != -1){
+                EbrAnt = Ebr;
+
+                fseek(f, Ebr.Part_Next,SEEK_SET);
+                fread(&Ebr, sizeof(Ebr), 1,f);
+
+                if(strcmp(Ebr.Part_Name, Name) == 0){
+                    if(ta > 0){
+                        Ebr.Part_Size = Ebr.Part_Size - Size;
+
+                        fseek(f, Ebr.Part_Start,SEEK_SET);
+                        fwrite(&Ebr, sizeof(Ebr), 1,f);
+
+                        printf("\nSe Extendio En Espacio Exitosamente\n\n");
+                    }else{
+                        printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+                    }
+                    fclose(f);
+                    return;
+                }
+            }
+        }
+    }else if(strcmp(Mbr.Mbr_Partition_2.Part_Type, "E") == 0){
+        Part = Mbr.Mbr_Partition_2;
+
+        fseek(f, (Mbr.Mbr_Partition_2.Part_Start + sizeof(Mbr.Mbr_Partition_2)),SEEK_SET);
+        fread(&Ebr, sizeof(Ebr), 1,f);
+
+        ta = (Ebr.Part_Size - sizeof(Ebr) - Size);
+
+        if(strcmp(Ebr.Part_Name, Name) == 0){
+            if(ta > 0){
+                Ebr.Part_Size = Ebr.Part_Size - Size;
+
+                fseek(f, Ebr.Part_Start,SEEK_SET);
+                fwrite(&Ebr, sizeof(Ebr), 1,f);
+
+                printf("\nSe Extendio En Espacio Exitosamente\n\n");
+            }else{
+                printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+            }
+            fclose(f);
+            return;
+        }else{
+            struct ExtendedBoot EbrAnt;
+            while(Ebr.Part_Next != -1){
+                EbrAnt = Ebr;
+
+                fseek(f, Ebr.Part_Next,SEEK_SET);
+                fread(&Ebr, sizeof(Ebr), 1,f);
+
+                if(strcmp(Ebr.Part_Name, Name) == 0){
+                    if(ta > 0){
+                        Ebr.Part_Size = Ebr.Part_Size - Size;
+
+                        fseek(f, Ebr.Part_Start,SEEK_SET);
+                        fwrite(&Ebr, sizeof(Ebr), 1,f);
+
+                        printf("\nSe Extendio En Espacio Exitosamente\n\n");
+                    }else{
+                        printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+                    }
+                    fclose(f);
+                    return;
+                }
+            }
+        }
+    }else if(strcmp(Mbr.Mbr_Partition_3.Part_Type, "E") == 0){
+        Part = Mbr.Mbr_Partition_3;
+
+        fseek(f, (Mbr.Mbr_Partition_3.Part_Start + sizeof(Mbr.Mbr_Partition_3)),SEEK_SET);
+        fread(&Ebr, sizeof(Ebr), 1,f);
+
+        ta = (Ebr.Part_Size - sizeof(Ebr) - Size);
+
+        if(strcmp(Ebr.Part_Name, Name) == 0){
+            if(ta > 0){
+                Ebr.Part_Size = Ebr.Part_Size - Size;
+
+                fseek(f, Ebr.Part_Start,SEEK_SET);
+                fwrite(&Ebr, sizeof(Ebr), 1,f);
+
+                printf("\nSe Extendio En Espacio Exitosamente\n\n");
+            }else{
+                printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+            }
+            fclose(f);
+            return;
+        }else{
+            struct ExtendedBoot EbrAnt;
+            while(Ebr.Part_Next != -1){
+                EbrAnt = Ebr;
+
+                fseek(f, Ebr.Part_Next,SEEK_SET);
+                fread(&Ebr, sizeof(Ebr), 1,f);
+
+                if(strcmp(Ebr.Part_Name, Name) == 0){
+                    if(ta > 0){
+                        Ebr.Part_Size = Ebr.Part_Size - Size;
+
+                        fseek(f, Ebr.Part_Start,SEEK_SET);
+                        fwrite(&Ebr, sizeof(Ebr), 1,f);
+
+                        printf("\nSe Extendio En Espacio Exitosamente\n\n");
+                    }else{
+                        printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+                    }
+                    fclose(f);
+                    return;
+                }
+            }
+        }
+
+    }else if(strcmp(Mbr.Mbr_Partition_4.Part_Type, "E") == 0){
+        Part = Mbr.Mbr_Partition_4;
+
+        fseek(f, (Mbr.Mbr_Partition_4.Part_Start + sizeof(Mbr.Mbr_Partition_4)),SEEK_SET);
+        fread(&Ebr, sizeof(Ebr), 1,f);
+        ta = (Ebr.Part_Size - sizeof(Ebr) - Size);
+
+        if(strcmp(Ebr.Part_Name, Name) == 0){
+            if(ta > 0){
+                Ebr.Part_Size = Ebr.Part_Size - Size;
+
+                fseek(f, Ebr.Part_Start,SEEK_SET);
+                fwrite(&Ebr, sizeof(Ebr), 1,f);
+
+                printf("\nSe Extendio En Espacio Exitosamente\n\n");
+            }else{
+                printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+            }
+            fclose(f);
+            return;
+        }else{
+            struct ExtendedBoot EbrAnt;
+            while(Ebr.Part_Next != -1){
+                EbrAnt = Ebr;
+
+                fseek(f, Ebr.Part_Next,SEEK_SET);
+                fread(&Ebr, sizeof(Ebr), 1,f);
+
+                if(strcmp(Ebr.Part_Name, Name) == 0){
+                    if(ta > 0){
+                        Ebr.Part_Size = Ebr.Part_Size - Size;
+
+                        fseek(f, Ebr.Part_Start,SEEK_SET);
+                        fwrite(&Ebr, sizeof(Ebr), 1,f);
+
+                        printf("\nSe Extendio En Espacio Exitosamente\n\n");
+                    }else{
+                        printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+                    }
+                    fclose(f);
+                    return;
+                }
+            }
+        }
+    }
+
+
+
+    if(strcmp(Mbr.Mbr_Partition_1.Part_Name, Name) == 0 ){
+        ta = (Mbr.Mbr_Partition_1.Part_Size - sizeof(Mbr.Mbr_Partition_1)) - Size;
+        if(ta > 0){
+            Part = Mbr.Mbr_Partition_1;
+            Part.Part_Size = Part.Part_Size - Size;
+
+            Mbr.Mbr_Partition_1 = Part;
+
+            fseek(f, sizeof(EDisk),SEEK_SET); //pueod usarlo y modifica info
+            fwrite(&Mbr,sizeof(Mbr),1,f);
+
+            fseek(f, Part.Part_Start,SEEK_SET);
+            fwrite(&Mbr.Mbr_Partition_1,sizeof(Mbr.Mbr_Partition_1),1,f);
+
+            printf("\nSe Extendio En Espacio Exitosamente\n\n");
+        }else{
+            printf("Error - NO hay espacio Continuo para Aumentar El espacio del Disco..\n\n");
+        }
+        fclose(f);
+        return;
+    }else if(strcmp(Mbr.Mbr_Partition_2.Part_Name, Name) ==0 ){
+        ta = (Mbr.Mbr_Partition_2.Part_Size - sizeof(Mbr.Mbr_Partition_2) - Size);
+        if(ta > 0){
+            Part = Mbr.Mbr_Partition_2;
+            Part.Part_Size = Part.Part_Size - Size;
+
+            Mbr.Mbr_Partition_2 = Part;
+
+            fseek(f, sizeof(EDisk),SEEK_SET); //pueod usarlo y modifica info
+            fwrite(&Mbr,sizeof(Mbr),1,f);
+
+            fseek(f, Part.Part_Start,SEEK_SET);
+            fwrite(&Mbr.Mbr_Partition_2,sizeof(Mbr.Mbr_Partition_2),1,f);
+
+            printf("\nSe Extendio En Espacio Exitosamente\n\n");
+        }else{
+            printf("Error - NO hay espacio Continuo para Aumentar El espacio del Disco..\n\n");
+        }
+        fclose(f);
+        return;
+    }else if(strcmp(Mbr.Mbr_Partition_3.Part_Name, Name) ==0 ){
+        ta = (Mbr.Mbr_Partition_3.Part_Size - sizeof(Mbr.Mbr_Partition_3) - Size);
+        if(ta > 0){
+            Part = Mbr.Mbr_Partition_3;
+            Part.Part_Size = Part.Part_Size - Size;
+
+            Mbr.Mbr_Partition_3 = Part;
+
+            fseek(f, sizeof(EDisk),SEEK_SET); //pueod usarlo y modifica info
+            fwrite(&Mbr,sizeof(Mbr),1,f);
+
+            fseek(f, Part.Part_Start,SEEK_SET);
+            fwrite(&Mbr.Mbr_Partition_3,sizeof(Mbr.Mbr_Partition_3),1,f);
+
+            printf("\nSe Extendio En Espacio Exitosamente\n\n");
+        }else{
+            printf("Error - NO hay espacio Continuo para Aumentar El espacio del Disco..\n\n");
+        }
+        fclose(f);
+        return;
+    }else if(strcmp(Mbr.Mbr_Partition_4.Part_Name, Name) == 0 ){
+        ta =(Mbr.Mbr_Partition_4.Part_Size - sizeof(Mbr.Mbr_Partition_4) - Size) ;
+        if(ta > 0){
+            Part = Mbr.Mbr_Partition_4;
+            Part.Part_Size = Part.Part_Size - Size;
+
+            Mbr.Mbr_Partition_4 = Part;
+
+            fseek(f, sizeof(EDisk),SEEK_SET); //pueod usarlo y modifica info
+            fwrite(&Mbr,sizeof(Mbr),1,f);
+
+            fseek(f, Part.Part_Start,SEEK_SET);
+            fwrite(&Mbr.Mbr_Partition_4,sizeof(Mbr.Mbr_Partition_4),1,f);
+
+            printf("\nSe Extendio En Espacio Exitosamente\n\n");
+        }else{
+            printf("Error - NO hay espacio Continuo para Aumentar El espacio del Disco..\n\n");
+        }
+        fclose(f);
+        return;
+    }
+    printf("\nError - NO Existe La particion a Disminuir Espacio el Espacio\n\n");
 
 }
 
@@ -1909,9 +2484,11 @@ void RepDisk(char ide[5], char destino[100]){
     }
 
     if(Mbr.Mbr_Partition_1.Uso == 22){
-        if(Mbr.Mbr_Partition_1.Part_Start == (sizeof(Mbr)+sizeof(EDisk))){
+        //printf("%d\n", (sizeof(Mbr) + sizeof(EDisk)));
+        int ids = (sizeof(Mbr)+sizeof(EDisk));
+        if(Mbr.Mbr_Partition_1.Part_Start == ids){
             if(strcmp(Mbr.Mbr_Partition_1.Part_Type, "E") == 0){
-                fseek(f, (Mbr.Mbr_Partition_1.Part_Start + +sizeof(Mbr.Mbr_Partition_1)),SEEK_SET);
+                fseek(f, (Mbr.Mbr_Partition_1.Part_Start + sizeof(Mbr.Mbr_Partition_1)),SEEK_SET);
                 fread(&Ebr, sizeof(Ebr), 1,f);
                 fprintf(rp, "| { Extendida");
                 ebri = 0;
@@ -1937,6 +2514,8 @@ void RepDisk(char ide[5], char destino[100]){
                 }
                 fprintf(rp, "}");
                 fprintf(rp, "}");
+            }else{
+                fprintf(rp, "|       Particion      ");
             }
         }else{
             fprintf(rp, "| Libre");
@@ -2002,37 +2581,7 @@ void RepDisk(char ide[5], char destino[100]){
                 fprintf(rp, "}");
                 fprintf(rp, "}");
             }else{
-                fprintf(rp, "| Libre");
-                if(strcmp(Mbr.Mbr_Partition_1.Part_Type, "E") == 0){
-                    fseek(f, (Mbr.Mbr_Partition_1.Part_Start + +sizeof(Mbr.Mbr_Partition_1)),SEEK_SET);
-                    fread(&Ebr, sizeof(Ebr), 1,f);
-                    fprintf(rp, "| { Extendida");
-                    ebri = 0;
-                    if(Ebr.Part_Size != 0){
-                        fprintf(rp, "| {Ebr");
-                        fprintf(rp, "| Logica");
-                        while(Ebr.Part_Next != -1){
-                            if(Ebr.Part_Next == (Ebr.Part_Start + Ebr.Part_Size)){
-                                fprintf(rp, "| Ebr");
-                                fprintf(rp, "| Logica");
-                            }else{
-                                fprintf(rp, "|Libre");
-                                fprintf(rp, "| Ebr");
-                                fprintf(rp, "| Logica");
-                            }
-
-                            fseek(f, Ebr.Part_Next,SEEK_SET);
-                            fread(&Ebr, sizeof(Ebr), 1,f);
-                        }
-                    }else{
-                        fprintf(rp, "| {Ebr");
-                        fprintf(rp, "|           Libre         ");
-                    }
-                    fprintf(rp, "}");
-                    fprintf(rp, "}");
-                }else{
-                    fprintf(rp, "|   Particion    ");
-                }
+                fprintf(rp, "|   Particion    ");
             }
         }else{
             fprintf(rp, "| Libre");
@@ -2071,7 +2620,7 @@ void RepDisk(char ide[5], char destino[100]){
     if(Mbr.Mbr_Partition_3.Uso == 22){
         if(Mbr.Mbr_Partition_3.Part_Start == (Mbr.Mbr_Partition_2.Part_Start + Mbr.Mbr_Partition_2.Part_Size)){
             if(strcmp(Mbr.Mbr_Partition_3.Part_Type, "E") == 0){
-                fseek(f, (Mbr.Mbr_Partition_3.Part_Start + +sizeof(Mbr.Mbr_Partition_3)),SEEK_SET);
+                fseek(f, (Mbr.Mbr_Partition_3.Part_Start + sizeof(Mbr.Mbr_Partition_3)),SEEK_SET);
                 fread(&Ebr, sizeof(Ebr), 1,f);
                 fprintf(rp, "| { Extendida");
                 ebri = 0;
@@ -2097,8 +2646,9 @@ void RepDisk(char ide[5], char destino[100]){
                 }
                 fprintf(rp, "}");
                 fprintf(rp, "}");
+            }else{
+                fprintf(rp, "|       Particion      ");
             }
-            fprintf(rp, "|       Particion      ");
         }else{
             fprintf(rp, "| Libre");
             if(strcmp(Mbr.Mbr_Partition_3.Part_Type, "E") == 0){
@@ -2136,7 +2686,7 @@ void RepDisk(char ide[5], char destino[100]){
     if(Mbr.Mbr_Partition_4.Uso == 22){
         if(Mbr.Mbr_Partition_4.Part_Start == (Mbr.Mbr_Partition_3.Part_Start + Mbr.Mbr_Partition_3.Part_Size)){
             if(strcmp(Mbr.Mbr_Partition_4.Part_Type, "E") == 0){
-                fseek(f, (Mbr.Mbr_Partition_4.Part_Start + +sizeof(Mbr.Mbr_Partition_4)),SEEK_SET);
+                fseek(f, (Mbr.Mbr_Partition_4.Part_Start + sizeof(Mbr.Mbr_Partition_4)),SEEK_SET);
                 fread(&Ebr, sizeof(Ebr), 1,f);
                 fprintf(rp, "| { Extendida");
                 ebri = 0;
@@ -2162,12 +2712,13 @@ void RepDisk(char ide[5], char destino[100]){
                 }
                 fprintf(rp, "}");
                 fprintf(rp, "}");
+            }else{
+                fprintf(rp, "|       Particion      ");
             }
-            fprintf(rp, "|       Particion      ");
         }else{
             fprintf(rp, "| Libre");
             if(strcmp(Mbr.Mbr_Partition_4.Part_Type, "E") == 0){
-                fseek(f, (Mbr.Mbr_Partition_4.Part_Start + +sizeof(Mbr.Mbr_Partition_4)),SEEK_SET);
+                fseek(f, (Mbr.Mbr_Partition_4.Part_Start + sizeof(Mbr.Mbr_Partition_4)),SEEK_SET);
                 fread(&Ebr, sizeof(Ebr), 1,f);
                 fprintf(rp, "| { Extendida");
                 ebri = 0;
@@ -2205,6 +2756,15 @@ void RepDisk(char ide[5], char destino[100]){
     fprintf(rp, "}");
     fclose(rp);
     fclose(f);
+
+    char drd[130];
+    strcpy(drd, "dot -Tjpg RepDisk.dot > ");
+    strcat(drd, destino);
+    system(drd);
+    strcpy(drd, "");
+    strcat(drd, "gnome-open ");
+    strcat(drd, destino);
+    system(drd);
 }
 
 void RepMbr(char ide[5], char destino[100]){
@@ -2404,6 +2964,10 @@ void RepMbr(char ide[5], char destino[100]){
     strcpy(drd, "dot -Tjpg RepMbr.dot > ");
     strcat(drd, destino);
     system(drd);
+    strcpy(drd, "");
+    strcat(drd, "gnome-open ");
+    strcat(drd, destino);
+    system(drd);
 }
 
 //*********************************************************************************************************//
@@ -2547,7 +3111,7 @@ void Comando(char Cadena[300]){
                     Pola = 1;
                 }else if( Cadena[i] == '-'){// cero negativo
                     Pola = 0;
-                    aux = Cadena[j];
+                    //aux = Cadena[j];
                 }else if( Cadena[i] == ' '){
                     aux = Cadena[j];
                 }else{
@@ -2555,9 +3119,12 @@ void Comando(char Cadena[300]){
                 }
                 if(Cadena[j] == ' '){
                     TamDisk = atoi(comando);
+                    Size = true;
                     break;
                 }else{
-                    strcat(comando, &aux);
+                    if(Cadena[i] != '-'){
+                        strcat(comando, &aux);
+                    }
                 }
                 i++;
             }
@@ -2874,7 +3441,7 @@ void Comando(char Cadena[300]){
             }
         }
     }else if(fdisk == true){
-        if(Size == true && PthDirB == true && NameDiskB && FitB == true && TypeDiskB == true){
+        if(Size == true && PthDirB == true && NameDiskB && FitB == true && TypeDiskB == true && AddS == false){
             if(TypeDisk == 2){
                 FDiskLogic(TamDisk, PthDir, NameDisk, Unit, TypeDisk, Fit);
             }else{
@@ -2882,6 +3449,12 @@ void Comando(char Cadena[300]){
             }
         }else if(DeltB == true && NameDiskB == true && PthDirB == true){
             DeleteFdisk(PthDir, NameDisk, Delt);
+        }else if(AddS == true && NameDiskB == true && PthDirB == true && Size == true){
+            if(Pola == 1){
+                AddFDisk(TamDisk, PthDir, NameDisk, Unit);
+            }else if(Pola == 0){
+                RedFDisk(TamDisk, PthDir, NameDisk, Unit);
+            }
         }else{
             printf("Error al Intentar Hacer Cambio de Particion, Verifique sus Datos\n");
         }
@@ -2895,9 +3468,9 @@ void Comando(char Cadena[300]){
     }else if(rep == true){
         if(PthDirB == true && idn == true && NameDiskB == true){
             if(strcmp(NameDisk, "mbr") == 0){
-                RepMbr(iden, NameDisk);
+                RepMbr(iden, PthDir);
             }else if(strcmp(NameDisk, "disk") == 0){
-                RepDisk(iden, NameDisk);
+                RepDisk(iden, PthDir);
             }else if(strcmp(NameDisk, "tree") == 0){
 
             }
@@ -3057,6 +3630,12 @@ void FileIn(char direc[150]){
     int Pola = 1;
     bool AddS = false;
 
+    bool umount = false;
+    bool idn = false;
+    bool rep = false;
+    char iden[5];
+
+
     strcpy(comando, "");
     char *aux;
 
@@ -3067,6 +3646,9 @@ void FileIn(char direc[150]){
         comando[100];
         cmd[20];
         //******** booleanos  de Comandos principales
+        umount = false;
+        idn = false;
+        rep = false;
         mkdisk = false;
         rmdisk = false;
         fdisk = false;
@@ -3089,14 +3671,16 @@ void FileIn(char direc[150]){
         DeltB = false;
         Pola = 1;
         AddS = false;
+        strcpy(iden, "");
 
         int i;
         strcpy(comando, "");
         printf( "%s",Cadena);
         strcpy(comando, "");
+
         for(i=0; i < strlen(Cadena); i++){
 
-            if(Cadena[i] == '+' || Cadena[i] == '-' || Cadena[i] == ' ' || Cadena[i] == '#'){
+            if(Cadena[i] == '+' || Cadena[i] == '-' || Cadena[i] == ' '){
                 aux = Cadena[i];
             }else if(Cadena[i] == '\0' || Cadena[i] == 0){
                 //printf("Es un salto de linea\n");
@@ -3130,6 +3714,29 @@ void FileIn(char direc[150]){
             }else if(strcmp(comando, "mount") == 0){
                 mount = true;
                 strcpy(comando, "");
+            }else if(strcmp(comando, "umount") == 0){
+                umount = true;
+                strcpy(comando, "");
+            }else if(strcmp(comando, "rep") == 0){
+                rep = true;
+                strcpy(comando, "");
+            }else if(strcmp(comando, "exec") == 0){
+                int j;
+                while(Cadena[i] == ' ' || Cadena[i] == '\n'){
+                    i++;
+                    strcpy(comando, "");
+                }
+                for(j = i; j<strlen(Cadena); j++){
+                    aux = Cadena[j];
+                    strcat(comando, &aux);
+                    if(Cadena[j] == '\n'){
+                        break;
+                    }
+                    i++;
+                }
+                i--;
+                FileIn(comando);
+                strcpy(comando, "");
             }else if(Cadena[i] == ' ' || strcmp(comando, " ") == 0){
                 strcpy(comando, "");
             }else if(strcmp(comando, "-size::") == 0){
@@ -3160,7 +3767,7 @@ void FileIn(char direc[150]){
                         Pola = 1;
                     }else if( Cadena[i] == '-'){// cero negativo
                         Pola = 0;
-                        aux = Cadena[j];
+                        //aux = Cadena[j];
                     }else if( Cadena[i] == ' '){
                         aux = Cadena[j];
                     }else{
@@ -3168,9 +3775,12 @@ void FileIn(char direc[150]){
                     }
                     if(Cadena[j] == ' '){
                         TamDisk = atoi(comando);
+                        Size = true;
                         break;
                     }else{
-                        strcat(comando, &aux);
+                        if(Cadena[i] != '-'){
+                            strcat(comando, &aux);
+                        }
                     }
                     i++;
                 }
@@ -3293,7 +3903,12 @@ void FileIn(char direc[150]){
                     }
                     i++;
                 }
-                DeltB = true;
+                if(Delt == 2){
+                    DeltB = false;
+                    printf("Error - Formato de eliminacion no Existe\n\n");
+                }else{
+                    DeltB = true;
+                }
                 strcpy(comando, "");
             }else if(strcmp(comando, "-path::")==0){
                 int comi = 0;
@@ -3328,32 +3943,53 @@ void FileIn(char direc[150]){
                 int j;
                 strcpy(comando, "");
                 //strcat(comando, &aux);
-                for(j = i; j < strlen(Cadena); j++){
-                    if(Cadena[i] == '+' || Cadena[i] == '-' || Cadena[i] == ' ' || Cadena[i] == '"'){
-                        aux = Cadena[j];
-                    }else if(Cadena[i] == '.'){
-                        ext = 1;
-                        aux = Cadena[i];
-                    }else{
-                        aux = (Cadena[j]);
-                    }
-                    if(Cadena[j] == '"'){
-                        if(comi != 0){
+                if(idn == true){
+                    for(j = i; j <= strlen(Cadena); j++){
+                        if(Cadena[i] == '+' || Cadena[i] == '-' || Cadena[i] == '"'){
+                            aux = Cadena[j];
+                        }else if(Cadena[i] == '.'){
+                            ext = 1;
+                            aux = Cadena[j];
+                        }else{
+                            aux = (Cadena[j]);
+                        }
+                        if(Cadena[j] == ' ' || (j) == strlen(Cadena)){
                             strcpy(NameDisk, comando);
                             break;
                         }else{
-                            comi = 1;
+                            strcat(comando, &aux);
                         }
-                    }else{
-                        if(ext == 1){
-                            strcat(extt, &aux);
-                        }
-                        if(strcmp(extt, ".dsk") == 0){
-                            ext = 2;
-                        }
-                        strcat(comando, &aux);
+                        i++;
                     }
-                    i++;
+                }else{
+                    for(j = i; j < strlen(Cadena); j++){
+                        if(Cadena[i] == '+' || Cadena[i] == '-' || Cadena[i] == ' ' || Cadena[i] == '"'){
+                            aux = Cadena[j];
+                        }else if(Cadena[i] == '.'){
+                            ext = 1;
+                            aux = Cadena[i];
+                        }else{
+                            aux = (Cadena[j]);
+                        }
+                        if(Cadena[j] == '"'){
+                            if(comi != 0){
+                                strcpy(NameDisk, comando);
+                                break;
+                            }else{
+                                comi = 1;
+                            }
+                        }else{
+                            if(ext == 1){
+                                strcat(extt, &aux);
+                            }
+                            if(strcmp(extt, ".dsk") == 0){
+                                ext = 2;
+                            }
+                            strcat(comando, &aux);
+                        }
+                        i++;
+                    }
+
                 }
                 if((ext == 1 || ext == 0) && mkdisk == true){
                     printf("!!Error!! No Tiene Extension\n");
@@ -3362,6 +3998,78 @@ void FileIn(char direc[150]){
                     NameDiskB = true;
                 }
                 strcpy(comando, "");
+            }else if(strcmp(comando, "-id") == 0 && umount == true){
+                idn = true;
+                int l;
+                int ll;
+                int ss = 0;
+                strcpy(comando, "");
+                for(l = i; l < strlen(Cadena); l++){
+                    aux = Cadena[l];
+                    if(strcmp(comando, "::") == 0){
+                        strcpy(comando, "");
+                        for(ll = l; ll < strlen(Cadena); ll++){
+                            aux = Cadena[ll];
+                            if(Cadena[ll] == ' ' || Cadena[ll] == '\n' || (ll+1) == strlen(Cadena)){
+                                //mandar a desmontar
+                                if((ll+1) == strlen(Cadena)){
+                                    strcat(comando, &aux);
+                                }
+                                printf("Particion Desmontar... %s\n", comando);
+                                UnMountDisk(comando);
+                                ViewMount();
+                                ss = 1;
+                                strcpy(comando, "");
+                                break;
+                            }else{
+                                strcat(comando, &aux);
+                            }
+                            l++;
+                            i++;
+                        }
+                    }else if(Cadena[l] == ' ' || Cadena[l] == '\n' || Cadena[l] == '0' || Cadena[l] == '1' || Cadena[l] == '2' || Cadena[l] == '3' || Cadena[l] == '4' || Cadena[l] == '5' || Cadena[l] == '6' || Cadena[l] == '7' || Cadena[l] == '8' || Cadena[l] == '9'){
+                        strcpy(comando, "");
+                    }else{
+                        strcat(comando, &aux);
+                    }
+                    if(ss == 1){
+                        break;
+                    }
+                    i++;
+                }
+            }else if(strcmp(comando, "-id::") == 0 && rep == true){
+                idn = true;
+                int l;
+                int ll;
+                int ss = 0;
+                strcpy(comando, "");
+                strcpy(iden, "");
+                for(l = i; l < strlen(Cadena); l++){
+                    aux = Cadena[l];
+                    strcpy(comando, "");
+                    for(ll = l; ll < strlen(Cadena); ll++){
+                        aux = Cadena[ll];
+                        if(Cadena[ll] == ' ' || Cadena[ll] == '\n' || (ll+1) == strlen(Cadena)){
+                            //mandar a desmontar
+                            if((ll+1) == strlen(Cadena)){
+                                strcat(comando, &aux);
+                            }
+
+                            ss = 1;
+                            strcat(iden, comando);
+                            strcpy(comando, "");
+                            break;
+                        }else{
+                            strcat(comando, &aux);
+                        }
+                        l++;
+                        i++;
+                    }
+                    if(ss == 1){
+                        break;
+                    }
+                    i++;
+                }
             }else if(strcmp(comando, "\\") == 0 || Cadena[i] == '\\'){
                 fgets(Cadena,350,fichero);
                 i = -1;
@@ -3371,6 +4079,7 @@ void FileIn(char direc[150]){
             }
 
         }
+
         if(mkdisk == true){
             if(NameDiskB == true && Size == true && PthDirB == true){
                 NewDisk(NameDisk, TamDisk, Unit, PthDir);
@@ -3386,13 +4095,40 @@ void FileIn(char direc[150]){
                 }
             }
         }else if(fdisk == true){
-            if(Size == true && PthDirB == true && NameDiskB && FitB == true && TypeDiskB == true){
-                FDisk(TamDisk, PthDir, NameDisk, Unit, TypeDisk, Fit);
+            if(Size == true && PthDirB == true && NameDiskB && FitB == true && TypeDiskB == true && AddS == false){
+                if(TypeDisk == 2){
+                    FDiskLogic(TamDisk, PthDir, NameDisk, Unit, TypeDisk, Fit);
+                }else{
+                    FDisk(TamDisk, PthDir, NameDisk, Unit, TypeDisk, Fit);
+                }
+            }else if(DeltB == true && NameDiskB == true && PthDirB == true){
+                DeleteFdisk(PthDir, NameDisk, Delt);
+            }else if(AddS == true && NameDiskB == true && PthDirB == true && Size == true){
+                if(Pola == 1){
+                    AddFDisk(TamDisk, PthDir, NameDisk, Unit);
+                }else if(Pola == 0){
+                    RedFDisk(TamDisk, PthDir, NameDisk, Unit);
+                }
             }else{
-                printf("Error al Intentar crear Particion, Verifique sus Datos");
+                printf("Error al Intentar Hacer Cambio de Particion, Verifique sus Datos\n");
             }
         }else if(mount == true){
+            if(PthDirB == true && NameDiskB == true){
+                MountDisk(PthDir, NameDisk);
+                ViewMount();
+            }else{
+                MountVisor();
+            }
+        }else if(rep == true){
+            if(PthDirB == true && idn == true && NameDiskB == true){
+                if(strcmp(NameDisk, "mbr") == 0){
+                    RepMbr(iden, PthDir);
+                }else if(strcmp(NameDisk, "disk") == 0){
+                    RepDisk(iden, PthDir);
+                }else if(strcmp(NameDisk, "tree") == 0){
 
+                }
+            }
         }
 
         fgets(Cadena,350,fichero);
@@ -3401,20 +4137,7 @@ void FileIn(char direc[150]){
     if (fclose(fichero)!=0)
         printf( "Problemas al cerrar el fichero\n" );
 }
-/*
-else if(strcmp(comando, "#")==0){
-                int j;
-                for(j = i; j < strlen(Cadena); j++){
-                    aux = Cadena[j];
-                    strcat(comando, &aux);
-                    printf("%s", comando);
-                    strcpy(comando, "");
-                    i++;
-                }
-                i--;
-                printf(" ");
-            }
-*/
+
 //*********************************************************************************************************//
 //********************************* Menu de Aplicacion **************************************//
 
@@ -3474,144 +4197,3 @@ int main(int argc, char *argv[])
     //Prueba();
     return 0;
 }
-
-/*
-#include <stdio.h>
-
-FILE* archivo;
-
-int main()
-{
-    archivo = fopen("archivo.txt", "a+");
-    fprintf(archivo, "%s", "Esta es la ultima linea\n");
-    fclose(archivo);
-}
-
-Y recuerdate los siguientes permisos:
-
-Código:
-r      lee el archivo.
-w      reemplaza el contenido del archivo por otro texto.
-rw     lee y reemplaza el texto del archivo por otro.
-w+     agrega un texto al final del archivo.
-a+     es lo mismo que w+.
-
-
-
-
-
-
-
-#include <stdio.h>
-
-int main ( int argc, char **argv )
-{
-    FILE *fp;
-
-    char buffer[100] = "Esto es un texto dentro del fichero.";
-
-    fp = fopen ( "fichero.txt", "r+" );
-
-    fprintf(fp, buffer);
-    fprintf(fp, "%s", "\nEsto es otro texto dentro del fichero.");
-
-    fclose ( fp );
-
-    return 0;
-}
-
-
-*/
-
-/*
- * char *aux;
-        if(Cadena[i] == '-' || Cadena[i] == '+'){
-            aux = (Cadena[i]);
-        }else{
-            aux = tolower(Cadena[i]);
-        }
-        */
-//multiples carpetas al mismo tiempo/ mkdir -p path
-
-
-//if dnde verificaba parte no completo
-
-/*
-    else if(Mbr.Mbr_Partition_1.Part_Size != 0 && Mbr.Mbr_Partition_2.Part_Size == 0 && Mbr.Mbr_Partition_3.Part_Size == 0 && Mbr.Mbr_Partition_4.Part_Size == 0){
-        rewind(f);
-        ndisk_size = ndisk_size - part1_size;
-        if(ndisk_size > Size){
-            Part.Part_Start = mbr_size + part1_size;//asignacion donde inicia el disco +2
-            Mbr.Mbr_Partition_2 = Part;
-            //tomamos la posicion donde se almacena o cambiamos la informacion
-            fseek(f, sizeof(EDisk),SEEK_SET); //pueod usarlo y modifica info
-            fwrite(&Mbr,sizeof(Mbr),1,f);
-        }else{
-            printf("Error - Tamano de la particion es demsiado grande\n");
-        }
-    }else if(Mbr.Mbr_Partition_1.Part_Size != 0 && Mbr.Mbr_Partition_2.Part_Size != 0 && Mbr.Mbr_Partition_3.Part_Size == 0 && Mbr.Mbr_Partition_4.Part_Size == 0){
-        rewind(f);
-        ndisk_size = ndisk_size - part1_size - part2_size;
-        if(ndisk_size > Size){
-            Part.Part_Start = mbr_size + part1_size + part2_size;//asignacion donde inicia el disco
-            Mbr.Mbr_Partition_3 = Part;
-            //tomamos la posicion donde se almacena o cambiamos la informacion
-            fseek(f, sizeof(EDisk),SEEK_SET); //pueod usarlo y modifica info
-            fwrite(&Mbr,sizeof(Mbr),1,f);
-        }else{
-            printf("Error - Tamano de la particion es demsiado grande\n");
-        }
-    }else if(Mbr.Mbr_Partition_1.Part_Size != 0 && Mbr.Mbr_Partition_2.Part_Size != 0 && Mbr.Mbr_Partition_3.Part_Size != 0 && Mbr.Mbr_Partition_4.Part_Size == 0){
-        rewind(f);
-        ndisk_size = ndisk_size - part1_size - part2_size - part3_size;
-        if(ndisk_size > Size){
-            Part.Part_Start = mbr_size + part1_size + part2_size;//asignacion donde inicia el disco
-            Mbr.Mbr_Partition_4 = Part;
-            //tomamos la posicion donde se almacena o cambiamos la informacion
-            fseek(f, sizeof(EDisk),SEEK_SET); //pueod usarlo y modifica info
-            fwrite(&Mbr,sizeof(Mbr),1,f);
-        }else{
-            printf("Error - Tamano de la particion es demsiado grande\n");
-        }
-    }
-
-
-
-
-    else if(Mbr.Mbr_Partition_1.Part_Size == 0 && Mbr.Mbr_Partition_2.Part_Size == 0 && Mbr.Mbr_Partition_3.Part_Size == 0 && Mbr.Mbr_Partition_4.Part_Size != 0){
-        rewind(f);
-        part4_size = Mbr.Mbr_Partition_4.Part_Size;
-
-        ndisk_size = ndisk_size - part4_size;
-        if(ndisk_size > Size){
-            Part.Part_Start = mbr_size + 1;//asignacion donde inicia el disco
-            Mbr.Mbr_Partition_1 = Part;
-            //tomamos la posicion donde se almacena o cambiamos la informacion
-            fseek(f, sizeof(EDisk),SEEK_SET); //pueod usarlo y modifica info
-            fwrite(&Mbr,sizeof(Mbr),1,f);
-        }else{
-            printf("Error - Tamano de la particion es demsiado grande\n");
-        }
-    }else if(Mbr.Mbr_Partition_1.Part_Size != 0 && Mbr.Mbr_Partition_2.Part_Size == 0 && Mbr.Mbr_Partition_3.Part_Size == 0 && Mbr.Mbr_Partition_4.Part_Size != 0){
-        rewind(f);
-        part1_size = Mbr.Mbr_Partition_1.Part_Size;
-        part4_size = Mbr.Mbr_Partition_4.Part_Size;
-
-        ndisk_size = ndisk_size - part1_size - part4_size;
-        if(ndisk_size > Size){
-            Part.Part_Start = mbr_size + part1_size + part4_size + 3;//asignacion donde inicia el disco
-            Mbr.Mbr_Partition_2 = Part;
-            //tomamos la posicion donde se almacena o cambiamos la informacion
-            fseek(f, sizeof(EDisk),SEEK_SET); //pueod usarlo y modifica info
-            fwrite(&Mbr,sizeof(Mbr),1,f);
-        }else{
-            printf("Error - Tamano de la particion es demsiado grande\n");
-        }
-    }else if(Mbr.Mbr_Partition_1.Part_Size != 0 && Mbr.Mbr_Partition_2.Part_Size != 0 && Mbr.Mbr_Partition_3.Part_Size != 0 && Mbr.Mbr_Partition_4.Part_Size != 0){
-        printf("Error - Solo puede Crear 4 particiones");
-        fclose(f);
-    }else{
-
-    }
-
-*/
