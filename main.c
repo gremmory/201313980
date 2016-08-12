@@ -14,8 +14,8 @@
 struct EstDisk{ //struct del disco
     char nombre[16];//100
     int tamano;
-    char particiones[9];
-    char pnt[9]; //direccion del mbr -- punteros
+    //char particiones[9];
+    //char pnt[9]; //direccion del mbr -- punteros
 };
 
 struct Partition{
@@ -52,8 +52,6 @@ struct EstMbr{
     int Mbr_Tamano;
     //time tiempo;
     int Mbr_Disk_Assignature;//random
-
-
     char mbr_byte_particion[10];//Contiene el byte donde inicia la partición.
     char mbr_byte_particion_desactivada[10];//Contiene el byte donde inicia la partición.
     char mbr_tipo_sistema_archivos[7];//Contiene el tipo de sistema de archivos.
@@ -96,8 +94,9 @@ void SetDisk(char nombre [100]){
 //crea direcctorios
 void Directorio(){
     char direc [200];
-    strcpy(direc, "mkdir -p ");
+    strcpy(direc, "mkdir -p \"");
     strcat(direc, Path);
+    strcat(direc, "\"");
     printf("Directorios:: %s \n:", direc);
     system(direc);
 
@@ -522,8 +521,8 @@ void NewDisk(char name[100], int tam, int unidad, char direc[150]){//crea el dis
     sprintf(Ndisck.nombre, "%s", name);
 
     //libreria sprintf concatena y asigna en forma de arreglo
-    sprintf(Ndisck.particiones, "%d", 0);
-    sprintf(Ndisck.pnt, "%d", (int)sizeof(Ndisck));
+    //sprintf(Ndisck.particiones, "%d", 0);
+    //sprintf(Ndisck.pnt, "%d", (int)sizeof(Ndisck));
     printf("Creando disco...\n");
     //creando el disco
     SetDisk(Ndisck.nombre);
@@ -548,6 +547,14 @@ void NewDisk(char name[100], int tam, int unidad, char direc[150]){//crea el dis
         //guardando informacion del disco
         tam = tam*1024*1024;
     }
+
+    if(tam < 10485760){
+        printf("\n\nError - El Tamano del Disco tiene que ser Igual o Mayor a:\n");
+        printf("10 Mb O \n");
+        printf("10240 Kb\n\n");
+        return;
+    }
+
     Ndisck.tamano = tam;
 
     rewind(f);
@@ -630,7 +637,7 @@ void FDisk(int Size, char Direc[100], char Name[16], int Unit, int Type, int Fit
                 fread(&Ebr, sizeof(Ebr), 1,f);
 
                 if(strcmp(Ebr.Part_Name, Name) == 0){
-                    printf("La Particion que desea Crear ya existe en un Logica\n\n");
+                    printf("Error - La Particion que desea Crear ya existe en un Logica\n\n");
                     fclose(f);
                     return;
                 }
@@ -749,6 +756,14 @@ void FDisk(int Size, char Direc[100], char Name[16], int Unit, int Type, int Fit
         Size = Size*1024;//entrada en kilobytes salida en tamano en bytes
     }else if(Unit == 2){
         Size = Size;
+    }
+
+    if(Size < 2097152){
+        printf("\n\nError - El Tamano de la Particion tiene que ser Igual o Mayor a:\n");
+        printf("2 Mb O \n");
+        printf("2048 Kb O\n");
+        printf("2097152 B \n\n");
+        return;
     }
 
     //tipo de particion de la que se crea
@@ -1992,7 +2007,8 @@ void AddFDisk(int Size, char Direc[100], char Name[16], int Unit){
                     addsp = true;
                 }
             }else if(Mbr.Mbr_Partition_2.Part_Start == 0 && Mbr.Mbr_Partition_3.Part_Start == 0 && Mbr.Mbr_Partition_4.Part_Start == 0){
-                if((Mbr.Mbr_Partition_1.Part_Start + Mbr.Mbr_Partition_1.Part_Size) <= Mbr.Mbr_Tamano){
+                //if((Mbr.Mbr_Partition_1.Part_Start + Mbr.Mbr_Partition_1.Part_Size) <= Mbr.Mbr_Tamano){
+                if((Mbr.Mbr_Tamano - Mbr.Mbr_Partition_1.Part_Start - Mbr.Mbr_Partition_1.Part_Size) > Size){
                     addsp == true;
                 }
             }
@@ -2020,16 +2036,22 @@ void AddFDisk(int Size, char Direc[100], char Name[16], int Unit){
             printf("Error - NO hay espacio Continuo para Aumentar El espacio del Disco..\n\n");
         }else {
             bool addsp = false;
+            int cmp;
             if(Mbr.Mbr_Partition_3.Part_Start != 0){
-                if((Mbr.Mbr_Partition_3.Part_Start - Mbr.Mbr_Partition_2.Part_Start - Mbr.Mbr_Partition_2.Part_Size) > Size){
+                cmp = (Mbr.Mbr_Partition_3.Part_Start - Mbr.Mbr_Partition_2.Part_Start - Mbr.Mbr_Partition_2.Part_Size);
+                if( cmp > Size){
                     addsp = true;
                 }
             }else if(Mbr.Mbr_Partition_3.Part_Start == 0 && Mbr.Mbr_Partition_4.Part_Start != 0){
-                if((Mbr.Mbr_Partition_4.Part_Start - Mbr.Mbr_Partition_3.Part_Start - Mbr.Mbr_Partition_3.Part_Size) > Size){
+                cmp = (Mbr.Mbr_Partition_4.Part_Start - Mbr.Mbr_Partition_2.Part_Start - Mbr.Mbr_Partition_2.Part_Size);
+                if( cmp > Size){
                     addsp = true;
                 }
             }else if(Mbr.Mbr_Partition_3.Part_Start == 0 && Mbr.Mbr_Partition_4.Part_Start == 0){
-                if((Mbr.Mbr_Partition_2.Part_Start + Mbr.Mbr_Partition_2.Part_Size) <= Mbr.Mbr_Tamano){
+                //cmp = (Mbr.Mbr_Partition_2.Part_Start + Mbr.Mbr_Partition_2.Part_Size);
+                cmp = (Mbr.Mbr_Tamano - Mbr.Mbr_Partition_2.Part_Start - Mbr.Mbr_Partition_2.Part_Size);
+                if(cmp > Size){
+                //if(cmp <= Mbr.Mbr_Tamano){
                     addsp == true;
                 }
             }
@@ -2062,7 +2084,8 @@ void AddFDisk(int Size, char Direc[100], char Name[16], int Unit){
                     addsp = true;
                 }
             }else if(Mbr.Mbr_Partition_4.Part_Start == 0){
-                if((Mbr.Mbr_Partition_3.Part_Start + Mbr.Mbr_Partition_3.Part_Size) <= Mbr.Mbr_Tamano){
+                //if((Mbr.Mbr_Partition_3.Part_Start + Mbr.Mbr_Partition_3.Part_Size) <= Mbr.Mbr_Tamano){
+                if((Mbr.Mbr_Tamano - Mbr.Mbr_Partition_3.Part_Start - Mbr.Mbr_Partition_3.Part_Size) > Size){
                     addsp == true;
                 }
             }
@@ -2089,7 +2112,8 @@ void AddFDisk(int Size, char Direc[100], char Name[16], int Unit){
             printf("Error - NO hay espacio Continuo para Aumentar El espacio del Disco..\n\n");
         }else {
             bool addsp = false;
-            if((Mbr.Mbr_Partition_4.Part_Start + Mbr.Mbr_Partition_4.Part_Size) <= Mbr.Mbr_Tamano){
+            //if((Mbr.Mbr_Partition_4.Part_Start + Mbr.Mbr_Partition_4.Part_Size) <= Mbr.Mbr_Tamano){
+            if((Mbr.Mbr_Tamano - Mbr.Mbr_Partition_4.Part_Start - Mbr.Mbr_Partition_4.Part_Size) > Size){
                 addsp == true;
             }
 
@@ -2330,7 +2354,8 @@ void RedFDisk(int Size, char Direc[100], char Name[16], int Unit){
 
     if(strcmp(Mbr.Mbr_Partition_1.Part_Name, Name) == 0 ){
         ta = (Mbr.Mbr_Partition_1.Part_Size - sizeof(Mbr.Mbr_Partition_1)) - Size;
-        if(ta > 0){
+        //2097152
+        if(ta > 2097152){
             Part = Mbr.Mbr_Partition_1;
             Part.Part_Size = Part.Part_Size - Size;
 
@@ -2342,7 +2367,7 @@ void RedFDisk(int Size, char Direc[100], char Name[16], int Unit){
             fseek(f, Part.Part_Start,SEEK_SET);
             fwrite(&Mbr.Mbr_Partition_1,sizeof(Mbr.Mbr_Partition_1),1,f);
 
-            printf("\nSe Extendio En Espacio Exitosamente\n\n");
+            printf("\nSe Redujo el Espacio Exitosamente\n\n");
         }else{
             printf("Error - NO hay espacio Continuo para Aumentar El espacio del Disco..\n\n");
         }
@@ -2350,7 +2375,7 @@ void RedFDisk(int Size, char Direc[100], char Name[16], int Unit){
         return;
     }else if(strcmp(Mbr.Mbr_Partition_2.Part_Name, Name) ==0 ){
         ta = (Mbr.Mbr_Partition_2.Part_Size - sizeof(Mbr.Mbr_Partition_2) - Size);
-        if(ta > 0){
+        if(ta > 2097152){
             Part = Mbr.Mbr_Partition_2;
             Part.Part_Size = Part.Part_Size - Size;
 
@@ -2370,7 +2395,7 @@ void RedFDisk(int Size, char Direc[100], char Name[16], int Unit){
         return;
     }else if(strcmp(Mbr.Mbr_Partition_3.Part_Name, Name) ==0 ){
         ta = (Mbr.Mbr_Partition_3.Part_Size - sizeof(Mbr.Mbr_Partition_3) - Size);
-        if(ta > 0){
+        if(ta > 2097152){
             Part = Mbr.Mbr_Partition_3;
             Part.Part_Size = Part.Part_Size - Size;
 
@@ -2390,7 +2415,7 @@ void RedFDisk(int Size, char Direc[100], char Name[16], int Unit){
         return;
     }else if(strcmp(Mbr.Mbr_Partition_4.Part_Name, Name) == 0 ){
         ta =(Mbr.Mbr_Partition_4.Part_Size - sizeof(Mbr.Mbr_Partition_4) - Size) ;
-        if(ta > 0){
+        if(ta > 2097152){
             Part = Mbr.Mbr_Partition_4;
             Part.Part_Size = Part.Part_Size - Size;
 
@@ -2702,7 +2727,6 @@ void RepDisk(char ide[5], char destino[100]){
                             fprintf(rp, "| Ebr");
                             fprintf(rp, "| Logica");
                         }
-
                         fseek(f, Ebr.Part_Next,SEEK_SET);
                         fread(&Ebr, sizeof(Ebr), 1,f);
                     }
@@ -2734,7 +2758,6 @@ void RepDisk(char ide[5], char destino[100]){
                             fprintf(rp, "| Ebr");
                             fprintf(rp, "| Logica");
                         }
-
                         fseek(f, Ebr.Part_Next,SEEK_SET);
                         fread(&Ebr, sizeof(Ebr), 1,f);
                     }
