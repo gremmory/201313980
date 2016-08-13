@@ -298,6 +298,7 @@ void MountDisk(char direc[150], char Name[16]){
         primero = NMount;
         //arriba = NMount;
         ultimo = NMount;
+        return;
         //abajo = NMount;
     }else{
         strcpy(NMount->Particion, Name);
@@ -344,7 +345,7 @@ void MountDisk(char direc[150], char Name[16]){
                 aux3->Abajo = NMount;
                 NMount->Arriba = aux;
 
-                printf("Se Monto la particion Exitosamente - De un Disco Existente\n");
+                printf("\n\nSe Monto la particion Exitosamente - De un Disco Existente\n");
                 return;
                 //break;//salgo del ciclo
             }
@@ -373,10 +374,11 @@ void MountDisk(char direc[150], char Name[16]){
             ultimo->Siguiente = NMount;
             //NMount->Siguiente = ultimo;
             ultimo = NMount;
-            printf("Se Monto la particion Exitosamente - De un Nuevo Disco\n");
+            printf("\n\nSe Monto la particion Exitosamente - De un Nuevo Disco\n");
             return;
         }
     }
+
 }
 
 void UnMountDisk(char unmount[6]){
@@ -523,6 +525,27 @@ void NewDisk(char name[100], int tam, int unidad, char direc[150]){//crea el dis
     //libreria sprintf concatena y asigna en forma de arreglo
     //sprintf(Ndisck.particiones, "%d", 0);
     //sprintf(Ndisck.pnt, "%d", (int)sizeof(Ndisck));
+    if(unidad == 5){
+        printf("Error - Error Unidad Desconocida\n\n");
+        return;
+    }
+
+    if(unidad == 1){// 0 == Mk 1==kb
+        if(tam < 10240){
+            printf("\n\nError - El Tamano del Disco tiene que ser Igual o Mayor a:\n");
+            printf("10 Mb O \n");
+            printf("10240 Kb\n\n");
+            return;
+        }
+    }else if(unidad == 0){
+        if(tam < 10){
+            printf("\n\nError - El Tamano del Disco tiene que ser Igual o Mayor a:\n");
+            printf("10 Mb O \n");
+            printf("10240 Kb\n\n");
+            return;
+        }
+    }
+
     printf("Creando disco...\n");
     //creando el disco
     SetDisk(Ndisck.nombre);
@@ -531,6 +554,8 @@ void NewDisk(char name[100], int tam, int unidad, char direc[150]){//crea el dis
 
     //escribimos el archivo binario
     //strcpy(buffer, "\0");
+
+
     if(unidad == 1){// 0 == Mk 1==kb
         for(ifor=0;ifor < tam;ifor++)//escribe en kilobytes
             fwrite (buffer, sizeof(buffer), 1024, f);
@@ -547,14 +572,6 @@ void NewDisk(char name[100], int tam, int unidad, char direc[150]){//crea el dis
         //guardando informacion del disco
         tam = tam*1024*1024;
     }
-
-    if(tam < 10485760){
-        printf("\n\nError - El Tamano del Disco tiene que ser Igual o Mayor a:\n");
-        printf("10 Mb O \n");
-        printf("10240 Kb\n\n");
-        return;
-    }
-
     Ndisck.tamano = tam;
 
     rewind(f);
@@ -1136,6 +1153,25 @@ void FDiskLogic(int Size, char Direc[100], char Name[16], int Unit, int Type, in
     fread(&EDisk,sizeof(EDisk),1,f);
     fread(&Mbr, sizeof(Mbr), 1,f);
 
+    //asigna el tamno del disco con la que se asigna
+    if(Unit == 0){
+        Size = Size*1024*1024;//entrada en mega salida en tamano en bytes
+    }else if(Unit ==1){
+        Size = Size*1024;//entrada en kilobytes salida en tamano en bytes
+    }else if(Unit == 2){
+        Size = Size;
+    }
+
+
+    if(Size < 2097152){
+        printf("\n\nError - El Tamano de la Particion tiene que ser Igual o Mayor a:\n");
+        printf("2 Mb O \n");
+        printf("2048 Kb O\n");
+        printf("2097152 B \n\n");
+        fclose(f);
+        return;
+    }
+
     if(strcmp(Mbr.Mbr_Partition_1.Part_Name, Name) == 0){
         printf("La Particion que desea Crear ya existe\n\n");
         fclose(f);
@@ -1164,18 +1200,22 @@ void FDiskLogic(int Size, char Direc[100], char Name[16], int Unit, int Type, in
             return;
         }else{
             struct ExtendedBoot EbrAnt;
-            while(Ebr.Part_Next != -1){
-                EbrAnt = Ebr;
+            if(Ebr.Part_Next != 0 && Ebr.Part_Next > 0){
+                while(Ebr.Part_Next != -1){
+                    EbrAnt = Ebr;
 
-                fseek(f, Ebr.Part_Next,SEEK_SET);
-                fread(&Ebr, sizeof(Ebr), 1,f);
+                    fseek(f, Ebr.Part_Next,SEEK_SET);
+                    fread(&Ebr, sizeof(Ebr), 1,f);
 
-                if(strcmp(Ebr.Part_Name, Name) == 0){
-                    printf("La Particion que desea Crear ya existe en un Logica\n\n");
-                    fclose(f);
-                    return;
+                    if(strcmp(Ebr.Part_Name, Name) == 0){
+                        printf("La Particion que desea Crear ya existe en un Logica\n\n");
+                        fclose(f);
+                        return;
+                    }
                 }
             }
+
+
         }
     }else if(strcmp(Mbr.Mbr_Partition_2.Part_Type, "E") == 0){
         Part = Mbr.Mbr_Partition_2;
@@ -1214,7 +1254,7 @@ void FDiskLogic(int Size, char Direc[100], char Name[16], int Unit, int Type, in
             return;
         }else{
             struct ExtendedBoot EbrAnt;
-            while(Ebr.Part_Next != -1){
+            while(Ebr.Part_Next != -1 || Ebr.Part_Next == 0){
                 EbrAnt = Ebr;
 
                 fseek(f, Ebr.Part_Next,SEEK_SET);
@@ -1258,14 +1298,6 @@ void FDiskLogic(int Size, char Direc[100], char Name[16], int Unit, int Type, in
         return;
     }
 
-    //asigna el tamno del disco con la que se asigna
-    if(Unit == 0){
-        Size = Size*1024*1024;//entrada en mega salida en tamano en bytes
-    }else if(Unit ==1){
-        Size = Size*1024;//entrada en kilobytes salida en tamano en bytes
-    }else if(Unit == 2){
-        Size = Size;
-    }
 
     //tipo de colocacion
     char fitT[2];
@@ -1285,7 +1317,7 @@ void FDiskLogic(int Size, char Direc[100], char Name[16], int Unit, int Type, in
     int partL_lib;
     int partE_size = 0;
 
-    partE_size = Part.Part_Size - sizeof(Part);
+    partE_size = Part.Part_Size; //- sizeof(Part);
 
     //tomamo el puntero de la particion extendida donde se encuentra el primer EBR
     fseek(f, (Part.Part_Start + sizeof(Part)),SEEK_SET);
@@ -1295,7 +1327,7 @@ void FDiskLogic(int Size, char Direc[100], char Name[16], int Unit, int Type, in
     partL_lib = Ebr.Part_Start - Part.Part_Start + sizeof(Part);
     if(Ebr.Part_Next == -1 && Ebr.Part_Size == 0){
         rewind(f);
-        if(partE_size > Size){
+        if(partE_size >= Size){
             sprintf(Ebr.Part_Status, "%s", "S");
             sprintf(Ebr.Part_Fit, "%s", fitT);
             Ebr.Part_Start = Part.Part_Start + sizeof(Part);//la particion iniacia en donde inicia EBR
@@ -1313,7 +1345,7 @@ void FDiskLogic(int Size, char Direc[100], char Name[16], int Unit, int Type, in
         //escribiendo el nuevo ebr
         sprintf(Ebr.Part_Status, "%s", "S");
         sprintf(Ebr.Part_Fit, "%s", fitT);
-        Ebr.Part_Next = Ebr.Part_Start;
+        Ebr.Part_Next = Ebr.Part_Next;
         Ebr.Part_Start = Part.Part_Start + sizeof(Part);//la particion iniacia en donde inicia EBR
         Ebr.Part_Size = Size;
         sprintf(Ebr.Part_Name, "%s", Name);
@@ -1532,8 +1564,12 @@ void DeleteFdisk(char Direc[100], char Name[16], int formato){
 
                 if(strcmp(Ebr.Part_Name, Name) == 0){
                     fseek(f, (Mbr.Mbr_Partition_1.Part_Start + sizeof(Mbr.Mbr_Partition_1)),SEEK_SET);
+                    if(Ebr.Part_Next == -1){
+                        EbrAnt.Part_Next = -1;
+                    }else{
+                        EbrAnt.Part_Next = Ebr.Part_Next;
+                    }
 
-                    EbrAnt.Part_Next = Ebr.Part_Next;
                     fseek(f, EbrAnt.Part_Start,SEEK_SET);
                     fwrite (&EbrAnt, sizeof(EbrAnt), 1024, f);
 
@@ -1582,7 +1618,12 @@ void DeleteFdisk(char Direc[100], char Name[16], int formato){
                 if(strcmp(Ebr.Part_Name, Name) == 0){
                     fseek(f, (Mbr.Mbr_Partition_2.Part_Start + sizeof(Mbr.Mbr_Partition_2)),SEEK_SET);
 
-                    EbrAnt.Part_Next = Ebr.Part_Next;
+                    if(Ebr.Part_Next == -1){
+                        EbrAnt.Part_Next = -1;
+                    }else{
+                        EbrAnt.Part_Next = Ebr.Part_Next;
+                    }
+
                     fseek(f, EbrAnt.Part_Start,SEEK_SET);
                     fwrite (&EbrAnt, sizeof(EbrAnt), 1024, f);
 
@@ -1630,7 +1671,12 @@ void DeleteFdisk(char Direc[100], char Name[16], int formato){
                 if(strcmp(Ebr.Part_Name, Name) == 0){
                     fseek(f, (Mbr.Mbr_Partition_3.Part_Start + sizeof(Mbr.Mbr_Partition_3)),SEEK_SET);
 
-                    EbrAnt.Part_Next = Ebr.Part_Next;
+                    if(Ebr.Part_Next == -1){
+                        EbrAnt.Part_Next = -1;
+                    }else{
+                        EbrAnt.Part_Next = Ebr.Part_Next;
+                    }
+
                     fseek(f, EbrAnt.Part_Start,SEEK_SET);
                     fwrite (&EbrAnt, sizeof(EbrAnt), 1024, f);
 
@@ -1677,7 +1723,12 @@ void DeleteFdisk(char Direc[100], char Name[16], int formato){
                 if(strcmp(Ebr.Part_Name, Name) == 0){
                     fseek(f, (Mbr.Mbr_Partition_4.Part_Start + sizeof(Mbr.Mbr_Partition_4)),SEEK_SET);
 
-                    EbrAnt.Part_Next = Ebr.Part_Next;
+                    if(Ebr.Part_Next == -1){
+                        EbrAnt.Part_Next = -1;
+                    }else{
+                        EbrAnt.Part_Next = Ebr.Part_Next;
+                    }
+
                     fseek(f, EbrAnt.Part_Start,SEEK_SET);
                     fwrite (&EbrAnt, sizeof(EbrAnt), 1024, f);
 
@@ -2177,7 +2228,7 @@ void RedFDisk(int Size, char Direc[100], char Name[16], int Unit){
         ta = (Ebr.Part_Size - sizeof(Ebr) - Size);
 
         if(strcmp(Ebr.Part_Name, Name) == 0){
-            if(ta > 0){
+            if(ta > 2097152){
                 Ebr.Part_Size = Ebr.Part_Size - Size;
 
                 fseek(f, Ebr.Part_Start,SEEK_SET);
@@ -2185,7 +2236,7 @@ void RedFDisk(int Size, char Direc[100], char Name[16], int Unit){
 
                 printf("\nSe Extendio En Espacio Exitosamente\n\n");
             }else{
-                printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+                printf("Error - NO hay espacio Suficiente para Reducir El espacio del Disco..\n\n");
             }
             fclose(f);
             return;
@@ -2197,8 +2248,9 @@ void RedFDisk(int Size, char Direc[100], char Name[16], int Unit){
                 fseek(f, Ebr.Part_Next,SEEK_SET);
                 fread(&Ebr, sizeof(Ebr), 1,f);
 
+                ta = (Ebr.Part_Size - sizeof(Ebr) - Size);
                 if(strcmp(Ebr.Part_Name, Name) == 0){
-                    if(ta > 0){
+                    if(ta > 2097152){
                         Ebr.Part_Size = Ebr.Part_Size - Size;
 
                         fseek(f, Ebr.Part_Start,SEEK_SET);
@@ -2206,7 +2258,7 @@ void RedFDisk(int Size, char Direc[100], char Name[16], int Unit){
 
                         printf("\nSe Extendio En Espacio Exitosamente\n\n");
                     }else{
-                        printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+                        printf("Error - NO hay espacio Suficiente para Reducir El espacio del Disco..\n\n");
                     }
                     fclose(f);
                     return;
@@ -2222,7 +2274,7 @@ void RedFDisk(int Size, char Direc[100], char Name[16], int Unit){
         ta = (Ebr.Part_Size - sizeof(Ebr) - Size);
 
         if(strcmp(Ebr.Part_Name, Name) == 0){
-            if(ta > 0){
+            if(ta > 2097512){
                 Ebr.Part_Size = Ebr.Part_Size - Size;
 
                 fseek(f, Ebr.Part_Start,SEEK_SET);
@@ -2230,7 +2282,7 @@ void RedFDisk(int Size, char Direc[100], char Name[16], int Unit){
 
                 printf("\nSe Extendio En Espacio Exitosamente\n\n");
             }else{
-                printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+                printf("Error - NO hay espacio Suficiente para Reducir El espacio del Disco..\n\n");
             }
             fclose(f);
             return;
@@ -2241,9 +2293,9 @@ void RedFDisk(int Size, char Direc[100], char Name[16], int Unit){
 
                 fseek(f, Ebr.Part_Next,SEEK_SET);
                 fread(&Ebr, sizeof(Ebr), 1,f);
-
+                ta = (Ebr.Part_Size - sizeof(Ebr) - Size);
                 if(strcmp(Ebr.Part_Name, Name) == 0){
-                    if(ta > 0){
+                    if(ta > 2097152){
                         Ebr.Part_Size = Ebr.Part_Size - Size;
 
                         fseek(f, Ebr.Part_Start,SEEK_SET);
@@ -2251,7 +2303,7 @@ void RedFDisk(int Size, char Direc[100], char Name[16], int Unit){
 
                         printf("\nSe Extendio En Espacio Exitosamente\n\n");
                     }else{
-                        printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+                        printf("Error - NO hay espacio Suficiente para Reducir El espacio del Disco..\n\n");
                     }
                     fclose(f);
                     return;
@@ -2267,7 +2319,7 @@ void RedFDisk(int Size, char Direc[100], char Name[16], int Unit){
         ta = (Ebr.Part_Size - sizeof(Ebr) - Size);
 
         if(strcmp(Ebr.Part_Name, Name) == 0){
-            if(ta > 0){
+            if(ta > 2097152){
                 Ebr.Part_Size = Ebr.Part_Size - Size;
 
                 fseek(f, Ebr.Part_Start,SEEK_SET);
@@ -2275,7 +2327,7 @@ void RedFDisk(int Size, char Direc[100], char Name[16], int Unit){
 
                 printf("\nSe Extendio En Espacio Exitosamente\n\n");
             }else{
-                printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+                printf("Error - NO hay espacio Suficiente para Reducir El espacio del Disco..\n\n");
             }
             fclose(f);
             return;
@@ -2287,8 +2339,9 @@ void RedFDisk(int Size, char Direc[100], char Name[16], int Unit){
                 fseek(f, Ebr.Part_Next,SEEK_SET);
                 fread(&Ebr, sizeof(Ebr), 1,f);
 
+                ta = (Ebr.Part_Size - sizeof(Ebr) - Size);
                 if(strcmp(Ebr.Part_Name, Name) == 0){
-                    if(ta > 0){
+                    if(ta > 2097152){
                         Ebr.Part_Size = Ebr.Part_Size - Size;
 
                         fseek(f, Ebr.Part_Start,SEEK_SET);
@@ -2296,7 +2349,7 @@ void RedFDisk(int Size, char Direc[100], char Name[16], int Unit){
 
                         printf("\nSe Extendio En Espacio Exitosamente\n\n");
                     }else{
-                        printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+                        printf("Error - NO hay espacio Suficiente para Reducir El espacio del Disco..\n\n");
                     }
                     fclose(f);
                     return;
@@ -2312,7 +2365,7 @@ void RedFDisk(int Size, char Direc[100], char Name[16], int Unit){
         ta = (Ebr.Part_Size - sizeof(Ebr) - Size);
 
         if(strcmp(Ebr.Part_Name, Name) == 0){
-            if(ta > 0){
+            if(ta > 2097152){
                 Ebr.Part_Size = Ebr.Part_Size - Size;
 
                 fseek(f, Ebr.Part_Start,SEEK_SET);
@@ -2320,7 +2373,7 @@ void RedFDisk(int Size, char Direc[100], char Name[16], int Unit){
 
                 printf("\nSe Extendio En Espacio Exitosamente\n\n");
             }else{
-                printf("Error - NO hay espacio Suficiente para Aumentar El espacio del Disco..\n\n");
+                printf("Error - NO hay espacio Suficiente para Reducir El espacio del Disco..\n\n");
             }
             fclose(f);
             return;
@@ -2332,8 +2385,9 @@ void RedFDisk(int Size, char Direc[100], char Name[16], int Unit){
                 fseek(f, Ebr.Part_Next,SEEK_SET);
                 fread(&Ebr, sizeof(Ebr), 1,f);
 
+                ta = (Ebr.Part_Size - sizeof(Ebr) - Size);
                 if(strcmp(Ebr.Part_Name, Name) == 0){
-                    if(ta > 0){
+                    if(ta > 2097152){
                         Ebr.Part_Size = Ebr.Part_Size - Size;
 
                         fseek(f, Ebr.Part_Start,SEEK_SET);
@@ -2369,7 +2423,7 @@ void RedFDisk(int Size, char Direc[100], char Name[16], int Unit){
 
             printf("\nSe Redujo el Espacio Exitosamente\n\n");
         }else{
-            printf("Error - NO hay espacio Continuo para Aumentar El espacio del Disco..\n\n");
+            printf("Error - NO hay espacio Continuo para Reducir El espacio del Disco..\n\n");
         }
         fclose(f);
         return;
@@ -2389,7 +2443,7 @@ void RedFDisk(int Size, char Direc[100], char Name[16], int Unit){
 
             printf("\nSe Extendio En Espacio Exitosamente\n\n");
         }else{
-            printf("Error - NO hay espacio Continuo para Aumentar El espacio del Disco..\n\n");
+            printf("Error - NO hay espacio Continuo para Reducir El espacio del Disco..\n\n");
         }
         fclose(f);
         return;
@@ -2409,7 +2463,7 @@ void RedFDisk(int Size, char Direc[100], char Name[16], int Unit){
 
             printf("\nSe Extendio En Espacio Exitosamente\n\n");
         }else{
-            printf("Error - NO hay espacio Continuo para Aumentar El espacio del Disco..\n\n");
+            printf("Error - NO hay espacio Continuo para Reducir El espacio del Disco..\n\n");
         }
         fclose(f);
         return;
@@ -2429,7 +2483,7 @@ void RedFDisk(int Size, char Direc[100], char Name[16], int Unit){
 
             printf("\nSe Extendio En Espacio Exitosamente\n\n");
         }else{
-            printf("Error - NO hay espacio Continuo para Aumentar El espacio del Disco..\n\n");
+            printf("Error - NO hay espacio Continuo para Reducir El espacio del Disco..\n\n");
         }
         fclose(f);
         return;
@@ -2448,6 +2502,10 @@ void RepDisk(char ide[5], char destino[100]){
 
     struct LtsMountDisk *MountAux;
     struct LtsMountDisk *MountAux2;
+
+    sprintf(Path, "%s", destino);// cambiamos el lugar donde se almacena
+    Directorio();
+
 
     bool exist = false;
     MountAux = primero;
@@ -2796,6 +2854,8 @@ void RepMbr(char ide[5], char destino[100]){
     FILE *rp;
     rp = fopen("RepMbr.dot","w");
 
+    sprintf(Path, "%s", destino);// cambiamos el lugar donde se almacena
+    Directorio();
     struct LtsMountDisk *MountAux;
     struct LtsMountDisk *MountAux2;
 
@@ -3110,13 +3170,18 @@ void Comando(char Cadena[300]){
             int j;
             strcpy(comando, "");
             //strcat(comando, &aux);
-            for(j = i; j < strlen(Cadena); j++){
-                if(Cadena[i] == '+' || Cadena[i] == '-' || Cadena[i] == ' '){
+            int ac = 0;
+            for(j = i; j <= strlen(Cadena); j++){
+                if(Cadena[i] == '+' || Cadena[i] == ' '){
+                    aux = Cadena[j];
+                }else if(Cadena[i] == '-' && mkdisk == true){
+                    ac= 1;
+                }else if(Cadena[i] == '-'){
                     aux = Cadena[j];
                 }else{
                     aux = tolower(Cadena[j]);
                 }
-                if(Cadena[j] == ' '){
+                if(Cadena[j] == ' ' || strlen(Cadena) == i){
                     TamDisk = atoi(comando);
                     break;
                 }else{
@@ -3124,12 +3189,16 @@ void Comando(char Cadena[300]){
                 }
                 i++;
             }
+            i--;
             Size = true;
+            if(ac == 1){
+                Size = false;
+            }
             strcpy(comando, "");
         }else if(strcmp(comando, "+add::") == 0){
             int j;
             strcpy(comando, "");
-            for(j = i; j < strlen(Cadena); j++){
+            for(j = i; j <= strlen(Cadena); j++){
                 if(Cadena[i] == '+'){// uno positivo
                     Pola = 1;
                 }else if( Cadena[i] == '-'){// cero negativo
@@ -3140,7 +3209,7 @@ void Comando(char Cadena[300]){
                 }else{
                     aux = tolower(Cadena[j]);
                 }
-                if(Cadena[j] == ' '){
+                if(Cadena[j] == ' ' || strlen(Cadena) == i){
                     TamDisk = atoi(comando);
                     Size = true;
                     break;
@@ -3151,19 +3220,20 @@ void Comando(char Cadena[300]){
                 }
                 i++;
             }
+            i--;
             AddS = true;
             strcpy(comando, "");
         }else if(strcmp(comando, "+type::") == 0){
             int j;
             strcpy(comando, "");
             //strcat(comando, &aux);
-            for(j = i; j < strlen(Cadena); j++){
+            for(j = i; j <= strlen(Cadena); j++){
                 if(Cadena[i] == '+' || Cadena[i] == '-' || Cadena[i] == ' '){
                     aux = Cadena[j];
                 }else{
                     aux = tolower(Cadena[j]);
                 }
-                if(Cadena[j] == ' '){
+                if(Cadena[j] == ' '|| strlen(Cadena) == i){
                     if(strcmp(comando, "p") == 0){//primaria 0
                         TypeDisk = 0;
                     }else if(strcmp(comando, "e") == 0){// extendida 1
@@ -3180,6 +3250,7 @@ void Comando(char Cadena[300]){
                 }
                 i++;
             }
+            i--;
             if(TypeDisk == 3){
                 TypeDiskB = false;
             }else{
@@ -3190,13 +3261,13 @@ void Comando(char Cadena[300]){
             int j;
             strcpy(comando, "");
             //strcat(comando, &aux);
-            for(j = i; j < strlen(Cadena); j++){
+            for(j = i; j <= strlen(Cadena); j++){
                 if(Cadena[i] == '+' || Cadena[i] == '-' || Cadena[i] == ' '){
                     aux = Cadena[j];
                 }else{
                     aux = tolower(Cadena[j]);
                 }
-                if(Cadena[j] == ' '){
+                if(Cadena[j] == ' ' || strlen(Cadena) == i){
                     if(strcmp(comando, "k") == 0){//kilobyte 1
                         Unit = 1;
                     }else if(strcmp(comando, "m") == 0){//megabyte 0
@@ -3204,7 +3275,7 @@ void Comando(char Cadena[300]){
                     }else if(strcmp(comando, "b") == 0){//bytes 2
                         Unit = 2;
                     }else{
-                        Unit = 0;
+                        Unit = 5;
                     }
                     break;
                 }else{
@@ -3212,19 +3283,20 @@ void Comando(char Cadena[300]){
                 }
                 i++;
             }
+            i--;
             UnitB = true;
             strcpy(comando, "");
         }else if(strcmp(comando, "+fit::")==0){//fit
             int j;
             strcpy(comando, "");
             //strcat(comando, &aux);
-            for(j = i; j < strlen(Cadena); j++){
+            for(j = i; j <= strlen(Cadena); j++){
                 if(Cadena[i] == '+' || Cadena[i] == '-' || Cadena[i] == ' '){
                     aux = Cadena[j];
                 }else{
                     aux = tolower(Cadena[j]);
                 }
-                if(Cadena[j] == ' '){
+                if(Cadena[j] == ' '|| strlen(Cadena) == i){
                     if(strcmp(comando, "bf") == 0){//best fit 1
                         Fit = 0;
                     }else if(strcmp(comando, "ff") == 0){//first fit 0
@@ -3240,6 +3312,7 @@ void Comando(char Cadena[300]){
                 }
                 i++;
             }
+            i--;
             if(Fit == 3){
                 FitB = false;
             }else{
@@ -3256,7 +3329,7 @@ void Comando(char Cadena[300]){
                 }else{
                     aux = tolower(Cadena[j]);
                 }
-                if(Cadena[j] == ' '){
+                if(Cadena[j] == ' '|| strlen(Cadena) == i){
                     if(strcmp(comando, "fast")  == 0){//fast delete fit 1
                         Delt = 0;
                     }else if(strcmp(comando, "full") == 0){//full delte fit 0
@@ -3270,6 +3343,7 @@ void Comando(char Cadena[300]){
                 }
                 i++;
             }
+            i--;
             if(Delt == 2){
                 DeltB = false;
                 printf("Error - Formato de eliminacion no Existe\n\n");
@@ -3300,6 +3374,7 @@ void Comando(char Cadena[300]){
                 }
                 i++;
             }
+            i--;
             PthDirB = true;
             strcpy(comando, "");
         }else if(strcmp(comando, "-name::")==0){
@@ -3320,7 +3395,7 @@ void Comando(char Cadena[300]){
                     }else{
                         aux = (Cadena[j]);
                     }
-                    if(Cadena[j] == ' ' || (j) == strlen(Cadena)){
+                    if(Cadena[j] == ' ' || (j) == strlen(Cadena)|| strlen(Cadena) == i){
                         strcpy(NameDisk, comando);
                         break;
                     }else{
@@ -3328,8 +3403,9 @@ void Comando(char Cadena[300]){
                     }
                     i++;
                 }
+                i--;
             }else{
-                for(j = i; j < strlen(Cadena); j++){
+                for(j = i; j <= strlen(Cadena); j++){
                     if(Cadena[i] == '+' || Cadena[i] == '-' || Cadena[i] == ' ' || Cadena[i] == '"'){
                         aux = Cadena[j];
                     }else if(Cadena[i] == '.'){
@@ -3338,7 +3414,7 @@ void Comando(char Cadena[300]){
                     }else{
                         aux = (Cadena[j]);
                     }
-                    if(Cadena[j] == '"'){
+                    if(Cadena[j] == '"' || strlen(Cadena) == i){
                         if(comi != 0){
                             strcpy(NameDisk, comando);
                             break;
@@ -3356,6 +3432,7 @@ void Comando(char Cadena[300]){
                     }
                     i++;
                 }
+                i--;
 
             }
             if((ext == 1 || ext == 0) && mkdisk == true){
@@ -3375,9 +3452,9 @@ void Comando(char Cadena[300]){
                 aux = Cadena[l];
                 if(strcmp(comando, "::") == 0){
                     strcpy(comando, "");
-                    for(ll = l; ll < strlen(Cadena); ll++){
+                    for(ll = l; ll <= strlen(Cadena); ll++){
                         aux = Cadena[ll];
-                        if(Cadena[ll] == ' ' || Cadena[ll] == '\n' || (ll+1) == strlen(Cadena)){
+                        if(Cadena[ll] == ' ' || Cadena[ll] == '\n' || (ll+1) == strlen(Cadena) || strlen(Cadena) == i){
                             //mandar a desmontar
                             if((ll+1) == strlen(Cadena)){
                                 strcat(comando, &aux);
@@ -3404,6 +3481,7 @@ void Comando(char Cadena[300]){
                 }
                 i++;
             }
+            i--;
         }else if(strcmp(comando, "-id::") == 0 && rep == true){
             idn = true;
             int l;
@@ -3411,12 +3489,12 @@ void Comando(char Cadena[300]){
             int ss = 0;
             strcpy(comando, "");
             strcpy(iden, "");
-            for(l = i; l < strlen(Cadena); l++){
+            for(l = i; l <= strlen(Cadena); l++){
                 aux = Cadena[l];
                 strcpy(comando, "");
-                for(ll = l; ll < strlen(Cadena); ll++){
+                for(ll = l; ll <= strlen(Cadena); ll++){
                     aux = Cadena[ll];
-                    if(Cadena[ll] == ' ' || Cadena[ll] == '\n' || (ll+1) == strlen(Cadena)){
+                    if(Cadena[ll] == ' ' || Cadena[ll] == '\n' || (ll+1) == strlen(Cadena)|| strlen(Cadena) == i){
                         //mandar a desmontar
                         if((ll+1) == strlen(Cadena)){
                             strcat(comando, &aux);
@@ -3437,6 +3515,7 @@ void Comando(char Cadena[300]){
                 }
                 i++;
             }
+            i--;
         }else if(strcmp(comando, "\\") == 0 || Cadena[i] == '\\'){
             gets(Cadena);
             fflush(stdin);
@@ -3490,9 +3569,9 @@ void Comando(char Cadena[300]){
         }
     }else if(rep == true){
         if(PthDirB == true && idn == true && NameDiskB == true){
-            if(strcmp(NameDisk, "mbr") == 0){
+            if(strcmp(NameDisk, "mbr") == 0 || strcmp(NameDisk, "Mbr") == 0 ||strcmp(NameDisk, "mBr") == 0 ||strcmp(NameDisk, "mbR") == 0 || strcmp(NameDisk, "MBr") == 0 || strcmp(NameDisk, "mBR") == 0 || strcmp(NameDisk, "MbR") == 0 || strcmp(NameDisk, "MBR") == 0){
                 RepMbr(iden, PthDir);
-            }else if(strcmp(NameDisk, "disk") == 0){
+            }else if(strcmp(NameDisk, "disk") == 0 || strcmp(NameDisk, "Disk") == 0 || strcmp(NameDisk, "DIsk") == 0 || strcmp(NameDisk, "DISk") == 0 || strcmp(NameDisk, "DISK") == 0 || strcmp(NameDisk, "DisK") == 0 || strcmp(NameDisk, "DiSk") == 0 || strcmp(NameDisk, "dIsk") == 0 || strcmp(NameDisk, "diSk") == 0 || strcmp(NameDisk, "disK") == 0){
                 RepDisk(iden, PthDir);
             }else if(strcmp(NameDisk, "tree") == 0){
 
@@ -3766,13 +3845,18 @@ void FileIn(char direc[150]){
                 int j;
                 strcpy(comando, "");
                 //strcat(comando, &aux);
-                for(j = i; j < strlen(Cadena); j++){
-                    if(Cadena[i] == '+' || Cadena[i] == '-' || Cadena[i] == ' '){
+                int ac=0;
+                for(j = i; j <= strlen(Cadena); j++){
+                    if(Cadena[i] == '+' || Cadena[i] == ' '){
+                        aux = Cadena[j];
+                    }else if(Cadena[i] == '-' && mkdisk == true){
+                        ac= 1;
+                    }else if(Cadena[i] == '-'){
                         aux = Cadena[j];
                     }else{
                         aux = tolower(Cadena[j]);
                     }
-                    if(Cadena[j] == ' '){
+                    if(Cadena[j] == ' ' || strlen(Cadena) == i){
                         TamDisk = atoi(comando);
                         break;
                     }else{
@@ -3780,12 +3864,16 @@ void FileIn(char direc[150]){
                     }
                     i++;
                 }
+                i--;
                 Size = true;
                 strcpy(comando, "");
+                if(ac == 1){
+                    Size = false;
+                }
             }else if(strcmp(comando, "+add::") == 0){
                 int j;
                 strcpy(comando, "");
-                for(j = i; j < strlen(Cadena); j++){
+                for(j = i; j <= strlen(Cadena); j++){
                     if(Cadena[i] == '+'){// uno positivo
                         Pola = 1;
                     }else if( Cadena[i] == '-'){// cero negativo
@@ -3796,7 +3884,7 @@ void FileIn(char direc[150]){
                     }else{
                         aux = tolower(Cadena[j]);
                     }
-                    if(Cadena[j] == ' '){
+                    if(Cadena[j] == ' ' || strlen(Cadena) == i){
                         TamDisk = atoi(comando);
                         Size = true;
                         break;
@@ -3807,19 +3895,20 @@ void FileIn(char direc[150]){
                     }
                     i++;
                 }
+                i--;
                 AddS = true;
                 strcpy(comando, "");
             }else if(strcmp(comando, "+type::") == 0){
                 int j;
                 strcpy(comando, "");
                 //strcat(comando, &aux);
-                for(j = i; j < strlen(Cadena); j++){
+                for(j = i; j <= strlen(Cadena); j++){
                     if(Cadena[i] == '+' || Cadena[i] == '-' || Cadena[i] == ' '){
                         aux = Cadena[j];
                     }else{
                         aux = tolower(Cadena[j]);
                     }
-                    if(Cadena[j] == ' '){
+                    if(Cadena[j] == ' ' || strlen(Cadena) == i){
                         if(strcmp(comando, "p") == 0){//primaria 0
                             TypeDisk = 0;
                         }else if(strcmp(comando, "e") == 0){// extendida 1
@@ -3836,6 +3925,7 @@ void FileIn(char direc[150]){
                     }
                     i++;
                 }
+                i--;
                 if(TypeDisk == 3){
                     TypeDiskB = false;
                 }else{
@@ -3846,13 +3936,13 @@ void FileIn(char direc[150]){
                 int j;
                 strcpy(comando, "");
                 //strcat(comando, &aux);
-                for(j = i; j < strlen(Cadena); j++){
+                for(j = i; j <= strlen(Cadena); j++){
                     if(Cadena[i] == '+' || Cadena[i] == '-' || Cadena[i] == ' '){
                         aux = Cadena[j];
                     }else{
                         aux = tolower(Cadena[j]);
                     }
-                    if(Cadena[j] == ' '){
+                    if(Cadena[j] == ' ' || strlen(Cadena) == i){
                         if(strcmp(comando, "k") == 0){//kilobyte 1
                             Unit = 1;
                         }else if(strcmp(comando, "m") == 0){//megabyte 0
@@ -3860,7 +3950,7 @@ void FileIn(char direc[150]){
                         }else if(strcmp(comando, "b") == 0){//bytes 2
                             Unit = 2;
                         }else{
-                            Unit = 0;
+                            Unit = 5;
                         }
                         break;
                     }else{
@@ -3868,19 +3958,20 @@ void FileIn(char direc[150]){
                     }
                     i++;
                 }
+                i--;
                 UnitB = true;
                 strcpy(comando, "");
             }else if(strcmp(comando, "+fit::")==0){//fit
                 int j;
                 strcpy(comando, "");
                 //strcat(comando, &aux);
-                for(j = i; j < strlen(Cadena); j++){
+                for(j = i; j <= strlen(Cadena); j++){
                     if(Cadena[i] == '+' || Cadena[i] == '-' || Cadena[i] == ' '){
                         aux = Cadena[j];
                     }else{
                         aux = tolower(Cadena[j]);
                     }
-                    if(Cadena[j] == ' '){
+                    if(Cadena[j] == ' ' || strlen(Cadena) == i){
                         if(strcmp(comando, "bf") == 0){//best fit 1
                             Fit = 0;
                         }else if(strcmp(comando, "ff") == 0){//first fit 0
@@ -3896,6 +3987,7 @@ void FileIn(char direc[150]){
                     }
                     i++;
                 }
+                i--;
                 if(Fit == 3){
                     FitB = false;
                 }else{
@@ -3906,13 +3998,13 @@ void FileIn(char direc[150]){
                 int j;
                 strcpy(comando, "");
                 //strcat(comando, &aux);
-                for(j = i; j < strlen(Cadena); j++){
+                for(j = i; j <= strlen(Cadena); j++){
                     if(Cadena[i] == '+' || Cadena[i] == '-' || Cadena[i] == ' '){
                         aux = Cadena[j];
                     }else{
                         aux = tolower(Cadena[j]);
                     }
-                    if(Cadena[j] == ' '){
+                    if(Cadena[j] == ' ' || strlen(Cadena) == i){
                         if(strcmp(comando, "fast")  == 0){//fast delete fit 1
                             Delt = 0;
                         }else if(strcmp(comando, "full") == 0){//full delte fit 0
@@ -3926,6 +4018,7 @@ void FileIn(char direc[150]){
                     }
                     i++;
                 }
+                i--;
                 if(Delt == 2){
                     DeltB = false;
                     printf("Error - Formato de eliminacion no Existe\n\n");
@@ -3938,7 +4031,7 @@ void FileIn(char direc[150]){
                 int j;
                 strcpy(comando, "");
                 //strcat(comando, &aux);
-                for(j = i; j < strlen(Cadena); j++){
+                for(j = i; j <= strlen(Cadena); j++){
                     if(Cadena[i] == '+' || Cadena[i] == '-' || Cadena[i] == ' ' || Cadena[i] == '"'){
                         aux = Cadena[j];
                     }else{
@@ -3956,6 +4049,7 @@ void FileIn(char direc[150]){
                     }
                     i++;
                 }
+                i--;
                 PthDirB = true;
                 strcpy(comando, "");
             }else if(strcmp(comando, "-name::")==0){
@@ -3976,7 +4070,7 @@ void FileIn(char direc[150]){
                         }else{
                             aux = (Cadena[j]);
                         }
-                        if(Cadena[j] == ' ' || (j) == strlen(Cadena)){
+                        if(Cadena[j] == ' ' || (j) == strlen(Cadena) || strlen(Cadena) == i){
                             strcpy(NameDisk, comando);
                             break;
                         }else{
@@ -3984,8 +4078,9 @@ void FileIn(char direc[150]){
                         }
                         i++;
                     }
+                    i--;
                 }else{
-                    for(j = i; j < strlen(Cadena); j++){
+                    for(j = i; j <= strlen(Cadena); j++){
                         if(Cadena[i] == '+' || Cadena[i] == '-' || Cadena[i] == ' ' || Cadena[i] == '"'){
                             aux = Cadena[j];
                         }else if(Cadena[i] == '.'){
@@ -4012,7 +4107,7 @@ void FileIn(char direc[150]){
                         }
                         i++;
                     }
-
+                    i--;
                 }
                 if((ext == 1 || ext == 0) && mkdisk == true){
                     printf("!!Error!! No Tiene Extension\n");
@@ -4027,11 +4122,11 @@ void FileIn(char direc[150]){
                 int ll;
                 int ss = 0;
                 strcpy(comando, "");
-                for(l = i; l < strlen(Cadena); l++){
+                for(l = i; l <= strlen(Cadena); l++){
                     aux = Cadena[l];
                     if(strcmp(comando, "::") == 0){
                         strcpy(comando, "");
-                        for(ll = l; ll < strlen(Cadena); ll++){
+                        for(ll = l; ll <= strlen(Cadena); ll++){
                             aux = Cadena[ll];
                             if(Cadena[ll] == ' ' || Cadena[ll] == '\n' || (ll+1) == strlen(Cadena)){
                                 //mandar a desmontar
@@ -4060,6 +4155,7 @@ void FileIn(char direc[150]){
                     }
                     i++;
                 }
+                i--;
             }else if(strcmp(comando, "-id::") == 0 && rep == true){
                 idn = true;
                 int l;
@@ -4067,7 +4163,7 @@ void FileIn(char direc[150]){
                 int ss = 0;
                 strcpy(comando, "");
                 strcpy(iden, "");
-                for(l = i; l < strlen(Cadena); l++){
+                for(l = i; l <= strlen(Cadena); l++){
                     aux = Cadena[l];
                     strcpy(comando, "");
                     for(ll = l; ll < strlen(Cadena); ll++){
@@ -4093,6 +4189,7 @@ void FileIn(char direc[150]){
                     }
                     i++;
                 }
+                i--;
             }else if(strcmp(comando, "\\") == 0 || Cadena[i] == '\\'){
                 fgets(Cadena,350,fichero);
                 i = -1;
@@ -4137,16 +4234,19 @@ void FileIn(char direc[150]){
             }
         }else if(mount == true){
             if(PthDirB == true && NameDiskB == true){
+                printf("\n");
                 MountDisk(PthDir, NameDisk);
+                printf("\n");
                 ViewMount();
             }else{
                 MountVisor();
+
             }
         }else if(rep == true){
             if(PthDirB == true && idn == true && NameDiskB == true){
-                if(strcmp(NameDisk, "mbr") == 0){
+                if(strcmp(NameDisk, "mbr") == 0 || strcmp(NameDisk, "Mbr") == 0 ||strcmp(NameDisk, "mBr") == 0 ||strcmp(NameDisk, "mbR") == 0 || strcmp(NameDisk, "MBr") == 0 || strcmp(NameDisk, "mBR") == 0 || strcmp(NameDisk, "MbR") == 0 || strcmp(NameDisk, "MBR") == 0){
                     RepMbr(iden, PthDir);
-                }else if(strcmp(NameDisk, "disk") == 0){
+                }else if(strcmp(NameDisk, "disk") == 0 || strcmp(NameDisk, "Disk") == 0 || strcmp(NameDisk, "DIsk") == 0 || strcmp(NameDisk, "DISk") == 0 || strcmp(NameDisk, "DISK") == 0 || strcmp(NameDisk, "DisK") == 0 || strcmp(NameDisk, "DiSk") == 0 || strcmp(NameDisk, "dIsk") == 0 || strcmp(NameDisk, "diSk") == 0 || strcmp(NameDisk, "disK") == 0){
                     RepDisk(iden, PthDir);
                 }else if(strcmp(NameDisk, "tree") == 0){
 
